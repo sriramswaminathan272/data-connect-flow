@@ -5,10 +5,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Search, Table, Database, FileText, ArrowRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Table, Database, FileText, Play, Eye } from "lucide-react";
 import { ConnectorType } from "./DatabaseConnector";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Table as UITable,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface DatabaseWorkspaceProps {
   connector: ConnectorType;
@@ -34,6 +43,11 @@ interface ColumnType {
   type: string;
 }
 
+interface TablePreviewData {
+  columns: string[];
+  rows: any[][];
+}
+
 const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) => {
   const [schemas, setSchemas] = useState<SchemaType[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null);
@@ -42,6 +56,10 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
   const [sqlQuery, setSqlQuery] = useState("");
   const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isRunningQuery, setIsRunningQuery] = useState(false);
+  const [tablePreviewOpen, setTablePreviewOpen] = useState(false);
+  const [previewTableData, setPreviewTableData] = useState<TablePreviewData | null>(null);
+  const [previewTableName, setPreviewTableName] = useState("");
 
   useEffect(() => {
     // Simulate loading schemas from database
@@ -149,6 +167,21 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
     }
   };
 
+  const handleRunQuery = () => {
+    if (!sqlQuery.trim()) {
+      toast.error("Please enter a SQL query first");
+      return;
+    }
+    
+    setIsRunningQuery(true);
+    
+    // Simulate query execution
+    setTimeout(() => {
+      setIsRunningQuery(false);
+      toast.success("Query executed successfully");
+    }, 1500);
+  };
+
   const handleGenerateSQL = () => {
     if (!promptText.trim()) {
       toast.error("Please enter a prompt first");
@@ -176,6 +209,41 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
       setIsGenerating(false);
       toast.success("SQL generated successfully");
     }, 2000);
+  };
+  
+  const handleTablePreview = (schemaId: string, tableId: string) => {
+    const schema = schemas.find(s => s.id === schemaId);
+    const table = schema?.tables.find(t => t.id === tableId);
+    
+    if (schema && table) {
+      setPreviewTableName(`${schema.name}.${table.name}`);
+      
+      // Simulate loading table preview data
+      const mockColumns = table.columns.map(col => col.name);
+      const mockRows = [];
+      
+      // Generate 10 rows of mock data
+      for (let i = 0; i < 10; i++) {
+        const row = table.columns.map(col => {
+          if (col.type === "integer") return Math.floor(Math.random() * 1000);
+          if (col.type === "decimal") return (Math.random() * 1000).toFixed(2);
+          if (col.type === "date" || col.type === "timestamp") {
+            const date = new Date();
+            date.setDate(date.getDate() - Math.floor(Math.random() * 30));
+            return date.toISOString().split('T')[0];
+          }
+          return `Sample ${col.name} ${i + 1}`;
+        });
+        mockRows.push(row);
+      }
+      
+      setPreviewTableData({
+        columns: mockColumns,
+        rows: mockRows
+      });
+      
+      setTablePreviewOpen(true);
+    }
   };
   
   return (
@@ -244,15 +312,27 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                         {schema.tables.map((table) => (
                           <div 
                             key={table.id}
-                            className={`flex items-center py-1 px-2 rounded cursor-pointer text-sm hover:bg-slate-100 ${
+                            className={`flex items-center justify-between py-1 px-2 rounded cursor-pointer text-sm hover:bg-slate-100 ${
                               selectedSchema === schema.id && selectedTable === table.id
                                 ? "bg-blue-100 text-blue-800"
                                 : ""
                             }`}
                             onClick={() => selectTable(schema.id, table.id)}
                           >
-                            <Table size={14} className="mr-2 opacity-70" />
-                            {table.name}
+                            <div className="flex items-center">
+                              <Table size={14} className="mr-2 opacity-70" />
+                              {table.name}
+                            </div>
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTablePreview(schema.id, table.id);
+                              }}
+                              className="p-1 opacity-70 hover:opacity-100 hover:bg-slate-200 rounded"
+                              title="Preview table data"
+                            >
+                              <Eye size={14} />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -276,18 +356,7 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
             </div>
             
             <TabsContent value="sql" className="flex-1 flex flex-col p-4">
-              <div className="flex-1">
-                <Label htmlFor="sql-editor" className="mb-2 block">SQL Query</Label>
-                <textarea 
-                  id="sql-editor"
-                  className="w-full h-60 p-4 border rounded-md font-mono text-sm"
-                  value={sqlQuery}
-                  onChange={(e) => setSqlQuery(e.target.value)}
-                  placeholder="Write your SQL query here..."
-                />
-              </div>
-              
-              <div className="border-t mt-6 pt-6">
+              <div className="mb-6">
                 <Label htmlFor="nl-prompt" className="mb-2 block">Natural Language to SQL</Label>
                 <div className="flex">
                   <Input
@@ -303,12 +372,33 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                     disabled={isGenerating}
                   >
                     {isGenerating ? "Generating..." : "Generate SQL"}
-                    {!isGenerating && <ArrowRight size={16} className="ml-2" />}
                   </Button>
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   Example: "Show me total orders by customer, sorted by highest value"
                 </p>
+              </div>
+              
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="sql-editor">SQL Query</Label>
+                  <Button 
+                    size="sm" 
+                    onClick={handleRunQuery}
+                    disabled={isRunningQuery}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isRunningQuery ? "Running..." : "Run SQL"}
+                    {!isRunningQuery && <Play size={14} className="ml-2" />}
+                  </Button>
+                </div>
+                <textarea 
+                  id="sql-editor"
+                  className="w-full h-60 p-4 border rounded-md font-mono text-sm"
+                  value={sqlQuery}
+                  onChange={(e) => setSqlQuery(e.target.value)}
+                  placeholder="Write your SQL query here..."
+                />
               </div>
             </TabsContent>
             
@@ -332,6 +422,39 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
           </Tabs>
         </div>
       </div>
+      
+      {/* Table Preview Sheet */}
+      <Sheet open={tablePreviewOpen} onOpenChange={setTablePreviewOpen}>
+        <SheetContent className="sm:max-w-2xl">
+          <SheetHeader>
+            <SheetTitle>Table Preview: {previewTableName}</SheetTitle>
+          </SheetHeader>
+          <div className="mt-6">
+            {previewTableData && (
+              <div className="border rounded-md overflow-auto max-h-[calc(100vh-180px)]">
+                <UITable>
+                  <TableHeader>
+                    <TableRow>
+                      {previewTableData.columns.map((column, i) => (
+                        <TableHead key={i}>{column}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {previewTableData.rows.map((row, i) => (
+                      <TableRow key={i}>
+                        {row.map((cell, j) => (
+                          <TableCell key={j}>{cell}</TableCell>
+                        ))}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </UITable>
+              </div>
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
