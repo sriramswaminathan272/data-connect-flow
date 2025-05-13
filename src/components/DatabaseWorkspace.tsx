@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -588,7 +587,7 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                                 handleTablePreview(schema.id, table.id);
                               }}
                               className="p-1 opacity-70 hover:opacity-100 hover:bg-slate-200 rounded"
-                              title="Preview table data"
+                              aria-label="Preview table data"
                             >
                               <Eye size={14} />
                             </button>
@@ -603,7 +602,11 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                 <div className="mt-4">
                   <h3 className="px-2 py-1 text-sm font-semibold text-slate-500 uppercase flex items-center justify-between">
                     <span>Temporary Tables</span>
-                    <HelpCircle size={14} className="opacity-70 cursor-help" title="Tables created during your current session" />
+                    <HelpCircle 
+                      size={14} 
+                      className="opacity-70 cursor-help" 
+                      aria-label="Tables created during your current session" 
+                    />
                   </h3>
                   <div className="mt-1 space-y-1">
                     {tempTables.map((table) => (
@@ -830,162 +833,68 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
             
             {/* Query Examples Tab */}
             <TabsContent value="examples" className="flex-1 p-4 overflow-auto">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-2">Query Examples</h2>
-                <p className="text-slate-600 text-sm mb-4">
-                  Add example queries that represent common patterns in your data analysis. These help improve SQL generation accuracy.
-                </p>
-                
-                <div className="border rounded-md p-4 bg-slate-50">
-                  <Label htmlFor="new-example" className="block mb-2">Add a new example query:</Label>
-                  <Textarea 
-                    id="new-example"
-                    placeholder="-- Example: Find top customers by revenue
-SELECT c.customer_id, c.name, SUM(o.total) as total_spent
-FROM customers c
-JOIN orders o ON c.customer_id = o.customer_id
-GROUP BY c.customer_id, c.name
-ORDER BY total_spent DESC
-LIMIT 10;"
-                    className="w-full h-40 font-mono text-sm mb-3"
-                  />
-                  <Button 
-                    onClick={() => handleAddQueryExample(
-                      (document.getElementById("new-example") as HTMLTextAreaElement).value
-                    )}
-                    className="gap-1"
-                  >
-                    <Save size={16} />
-                    Save Example
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-md font-medium">Saved Examples:</h3>
-                {queryExamples.map((example, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium">Example #{index + 1}</h4>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Trash size={16} />
-                      </Button>
-                    </div>
-                    <pre className="bg-slate-50 p-3 rounded border text-sm font-mono overflow-auto max-h-[200px]">
-                      {example}
-                    </pre>
-                  </Card>
-                ))}
-                
-                {queryExamples.length === 0 && (
-                  <div className="text-center py-8 text-slate-500">
-                    <p>No examples added yet</p>
-                  </div>
-                )}
-              </div>
+              <QueryExampleManager
+                examples={queryExamples}
+                onAdd={handleAddQueryExample}
+                onDelete={(index) => {
+                  const newExamples = [...queryExamples];
+                  newExamples.splice(index, 1);
+                  setQueryExamples(newExamples);
+                }}
+              />
             </TabsContent>
             
             {/* Documentation Tab */}
             <TabsContent value="documentation" className="flex-1 p-4 overflow-auto">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold mb-2">Project Documentation</h2>
-                <p className="text-slate-600 text-sm mb-4">
-                  Upload documentation to provide context for SQL generation. This helps the AI understand your data model and business rules.
-                </p>
-                
-                <div className="border-2 border-dashed border-slate-300 rounded-md p-8 text-center">
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
-                  <p className="mb-4 text-slate-600">Drag and drop files or click to upload</p>
-                  <input
-                    type="file"
-                    id="file-upload"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleDocumentUpload(e.target.files)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Project Documentation</h2>
+                  <p className="text-slate-600 text-sm mb-4">
+                    Upload documentation to provide context for SQL generation. This helps the AI understand your data model and business rules.
+                  </p>
+                  
+                  <DocumentationUploader 
+                    documents={documentation}
+                    onUpload={handleDocumentUpload}
+                    onDelete={(docName) => {
+                      setDocumentation(documentation.filter(doc => doc !== docName));
+                      toast.success(`Document "${docName}" removed`);
+                    }}
                   />
-                  <Button 
-                    variant="outline"
-                    onClick={() => document.getElementById("file-upload")?.click()}
-                  >
-                    Upload Files
-                  </Button>
                 </div>
-              </div>
-              
-              <div>
-                <h3 className="text-md font-medium mb-4">Uploaded Documentation:</h3>
                 
-                {documentation.length > 0 ? (
-                  <div className="space-y-3">
-                    {documentation.map((doc, index) => (
-                      <div key={index} className="flex items-center p-3 border rounded-md bg-slate-50">
-                        <FileText className="h-5 w-5 mr-3 text-blue-500" />
-                        <span className="flex-1">{doc}</span>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Trash size={16} />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-slate-500 border rounded-md">
-                    <p>No documentation uploaded yet</p>
-                  </div>
-                )}
-              </div>
-              
-              <div className="mt-8">
-                <h3 className="text-md font-medium mb-4">Table Metadata</h3>
-                <p className="text-slate-600 text-sm mb-4">
-                  Document your tables and columns to improve SQL generation accuracy.
-                </p>
-                
-                {schemas.map((schema) => (
-                  <div key={schema.id} className="mb-4">
-                    <h4 className="font-medium text-sm mb-2">{schema.name} Schema</h4>
-                    
-                    <div className="space-y-3">
-                      {schema.tables.map((table) => (
-                        <Card key={table.id} className="p-4">
-                          <div className="flex items-center mb-3">
-                            <Table size={16} className="mr-2" />
-                            <h5 className="font-medium">{table.name}</h5>
-                          </div>
-                          
-                          <div className="bg-slate-50 rounded border overflow-hidden">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="border-b">
-                                  <th className="px-3 py-2 text-left font-medium">Column</th>
-                                  <th className="px-3 py-2 text-left font-medium">Type</th>
-                                  <th className="px-3 py-2 text-left font-medium">Description</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {table.columns.map((column, i) => (
-                                  <tr key={i} className={i !== table.columns.length - 1 ? "border-b" : ""}>
-                                    <td className="px-3 py-2 font-mono">{column.name}</td>
-                                    <td className="px-3 py-2 text-slate-600">{column.type}</td>
-                                    <td className="px-3 py-2">
-                                      <Input 
-                                        placeholder="Add description..."
-                                        className="h-7 text-xs"
-                                      />
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                          
-                          <div className="mt-3 flex justify-end">
-                            <Button size="sm" variant="outline">Save Metadata</Button>
-                          </div>
-                        </Card>
-                      ))}
+                <div>
+                  <h2 className="text-lg font-semibold mb-2">Table Metadata</h2>
+                  <p className="text-slate-600 text-sm mb-4">
+                    Document your tables and columns to improve SQL generation accuracy.
+                  </p>
+                  
+                  <div className="border rounded-md p-4 bg-slate-50">
+                    <label className="block mb-2 font-medium">Select a table to document:</label>
+                    <div className="space-y-3 max-h-[400px] overflow-auto pr-2">
+                      {schemas.flatMap(schema => 
+                        schema.tables.map(table => (
+                          <Card key={`${schema.id}-${table.id}`} className="p-3 cursor-pointer hover:border-blue-300 transition-all">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Table size={16} className="text-blue-600" />
+                              <h4 className="font-medium">{schema.name}.{table.name}</h4>
+                            </div>
+                            <p className="text-xs text-slate-500 mb-1">
+                              {table.columns.length} columns, approximately {table.rowCount} rows
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2 w-full text-xs"
+                            >
+                              Add Documentation
+                            </Button>
+                          </Card>
+                        ))
+                      )}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
             </TabsContent>
           </Tabs>
