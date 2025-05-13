@@ -1,11 +1,28 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Search, Table, Database, FileText, Play, Eye, Code, ArrowDown } from "lucide-react";
+import { 
+  ChevronDown, 
+  ChevronRight, 
+  Search, 
+  Table, 
+  Database, 
+  FileText, 
+  Play, 
+  Eye, 
+  Code, 
+  ArrowDown,
+  Plus,
+  Save,
+  Upload,
+  Trash,
+  HelpCircle,
+  BookOpen
+} from "lucide-react";
 import { ConnectorType } from "./DatabaseConnector";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -19,6 +36,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import SqlNotebookCell from "./SqlNotebookCell";
+import TempTablesPanel from "./TempTablesPanel";
+import DocumentationUploader from "./DocumentationUploader";
+import QueryExampleManager from "./QueryExampleManager";
 
 interface DatabaseWorkspaceProps {
   connector: ConnectorType;
@@ -56,20 +78,43 @@ interface QueryResultType {
   rowCount: number;
 }
 
+interface NotebookCellType {
+  id: string;
+  sql: string;
+  results: QueryResultType | null;
+  isRunning: boolean;
+}
+
+interface TempTableType {
+  name: string;
+  rowCount: number;
+  columns: string[];
+}
+
 const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) => {
   const [schemas, setSchemas] = useState<SchemaType[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null);
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [sqlQuery, setSqlQuery] = useState("");
   const [promptText, setPromptText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isRunningQuery, setIsRunningQuery] = useState(false);
   const [tablePreviewOpen, setTablePreviewOpen] = useState(false);
   const [previewTableData, setPreviewTableData] = useState<TablePreviewData | null>(null);
   const [previewTableName, setPreviewTableName] = useState("");
-  const [activeTab, setActiveTab] = useState("sql");
+  const [activeTab, setActiveTab] = useState("notebook");
   const [queryResult, setQueryResult] = useState<QueryResultType | null>(null);
+  const [notebookCells, setNotebookCells] = useState<NotebookCellType[]>([
+    { id: "cell-1", sql: "-- Write your SQL here\nSELECT * FROM public.customers LIMIT 10;", results: null, isRunning: false }
+  ]);
+  const [tempTables, setTempTables] = useState<TempTableType[]>([
+    { name: "temp_customers", rowCount: 1243, columns: ["customer_id", "name", "email", "created_at"] },
+    { name: "temp_recent_orders", rowCount: 156, columns: ["order_id", "customer_id", "order_date", "total"] }
+  ]);
+  const [documentation, setDocumentation] = useState<string[]>([]);
+  const [queryExamples, setQueryExamples] = useState<string[]>([
+    "-- Find customers who made more than 5 orders\nSELECT c.customer_id, c.name, COUNT(o.order_id) as order_count\nFROM customers c\nJOIN orders o ON c.customer_id = o.customer_id\nGROUP BY c.customer_id, c.name\nHAVING COUNT(o.order_id) > 5\nORDER BY order_count DESC;",
+    "-- Calculate revenue by product category\nSELECT p.category, SUM(o.total) as total_revenue\nFROM orders o\nJOIN products p ON o.product_id = p.product_id\nGROUP BY p.category\nORDER BY total_revenue DESC;"
+  ]);
   const [suggestedPrompts, setSuggestedPrompts] = useState([
     "Show me total sales by region for the last quarter",
     "Find customers who made more than 5 orders last month",
@@ -180,28 +225,109 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
     const table = schema?.tables.find(t => t.id === tableId);
     
     if (schema && table) {
-      setSqlQuery(`SELECT *\nFROM ${schema.name}.${table.name}\nLIMIT 100;`);
+      // Add a new cell with the table query if in notebook mode
+      if (activeTab === "notebook") {
+        addNotebookCell(`SELECT *\nFROM ${schema.name}.${table.name}\nLIMIT 100;`);
+      }
     }
   };
 
-  const handleRunQuery = () => {
-    if (!sqlQuery.trim()) {
+  const addNotebookCell = (sqlContent: string = "") => {
+    const newCell = {
+      id: `cell-${Date.now()}`,
+      sql: sqlContent || "-- Write your SQL here",
+      results: null,
+      isRunning: false
+    };
+    
+    setNotebookCells([...notebookCells, newCell]);
+  };
+
+  const updateNotebookCell = (cellId: string, sql: string) => {
+    setNotebookCells(
+      notebookCells.map(cell => 
+        cell.id === cellId ? { ...cell, sql } : cell
+      )
+    );
+  };
+
+  const deleteNotebookCell = (cellId: string) => {
+    if (notebookCells.length > 1) {
+      setNotebookCells(notebookCells.filter(cell => cell.id !== cellId));
+    } else {
+      toast.error("Cannot delete the last cell");
+    }
+  };
+
+  const runNotebookCell = (cellId: string) => {
+    // Mark the cell as running
+    setNotebookCells(
+      notebookCells.map(cell => 
+        cell.id === cellId ? { ...cell, isRunning: true } : cell
+      )
+    );
+    
+    // Get the cell's SQL
+    const cell = notebookCells.find(c => c.id === cellId);
+    if (!cell) return;
+    
+    // Simulate query execution
+    setTimeout(() => {
+      // Generate mock results based on query
+      const mockResult = generateMockQueryResults(cell.sql);
+      
+      // Update cell with results
+      setNotebookCells(
+        notebookCells.map(c => 
+          c.id === cellId ? { ...c, results: mockResult, isRunning: false } : c
+        )
+      );
+      
+      // Check if we should add a temp table
+      if (cell.sql.toLowerCase().includes("into temp_") || cell.sql.toLowerCase().includes("create temp table")) {
+        const tableName = extractTempTableName(cell.sql);
+        if (tableName && !tempTables.some(t => t.name === tableName)) {
+          addTempTable(tableName, mockResult);
+        }
+      }
+      
+      toast.success("Query executed successfully");
+    }, 1500);
+  };
+
+  const extractTempTableName = (sql: string): string | null => {
+    // Simple regex to extract temp table name from common SQL patterns
+    const intoMatch = sql.match(/INTO\s+(\w+)/i);
+    const createMatch = sql.match(/CREATE\s+TEMP\s+TABLE\s+(\w+)/i);
+    
+    return (intoMatch && intoMatch[1]) || (createMatch && createMatch[1]) || null;
+  };
+
+  const addTempTable = (name: string, result: QueryResultType) => {
+    const newTempTable: TempTableType = {
+      name,
+      rowCount: result.rowCount,
+      columns: result.columns
+    };
+    
+    setTempTables([...tempTables, newTempTable]);
+  };
+
+  const handleRunQuery = (sql: string) => {
+    if (!sql.trim()) {
       toast.error("Please enter a SQL query first");
       return;
     }
     
-    setIsRunningQuery(true);
+    setActiveTab("results");
+    setQueryResult(null);
     
     // Simulate query execution
     setTimeout(() => {
-      setIsRunningQuery(false);
       toast.success("Query executed successfully");
       
-      // Switch to results tab
-      setActiveTab("results");
-      
       // Generate mock results based on query
-      const mockResult = generateMockQueryResults(sqlQuery);
+      const mockResult = generateMockQueryResults(sql);
       setQueryResult(mockResult);
     }, 1500);
   };
@@ -294,8 +420,16 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
         generatedSQL = `-- SQL generated from: "${promptText}"\n\n-- Based on your available tables: customers, orders, products\n\nSELECT *\nFROM public.${selectedSchemaObj?.tables[0]?.name || "customers"}\nLIMIT 100;`;
       }
       
-      setSqlQuery(generatedSQL);
+      // Add to notebook
+      if (activeTab === "notebook") {
+        addNotebookCell(generatedSQL);
+      } else {
+        // In other tabs, we can directly run the query
+        handleRunQuery(generatedSQL);
+      }
+      
       setIsGenerating(false);
+      setPromptText("");
       toast.success("SQL generated successfully");
     }, 2000);
   };
@@ -342,6 +476,22 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
       handleGenerateSQL();
     }, 100);
   };
+
+  const handleDocumentUpload = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    
+    // Simulate document processing
+    Array.from(files).forEach(file => {
+      // In a real app, we would process the file content
+      setDocumentation(prev => [...prev, file.name]);
+      toast.success(`Document "${file.name}" uploaded and processed`);
+    });
+  };
+
+  const handleAddQueryExample = (example: string) => {
+    setQueryExamples([...queryExamples, example]);
+    toast.success("Query example added");
+  };
   
   return (
     <div className="h-full flex flex-col">
@@ -355,13 +505,24 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
             <p className="text-sm text-slate-500">{connector.id === "redshift" ? "Connected to Redshift" : "Connected"}</p>
           </div>
         </div>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={onDisconnect}
-        >
-          Disconnect
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
+            onClick={() => setActiveTab("documentation")}
+          >
+            <BookOpen size={16} />
+            Documentation
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={onDisconnect}
+          >
+            Disconnect
+          </Button>
+        </div>
       </div>
       
       <div className="flex-1 flex">
@@ -388,6 +549,7 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
               </div>
             ) : (
               <div className="p-2">
+                <h3 className="px-2 py-1 text-sm font-semibold text-slate-500 uppercase">Database Schemas</h3>
                 {schemas.map((schema) => (
                   <div key={schema.id} className="mb-1">
                     <div 
@@ -436,6 +598,28 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                     )}
                   </div>
                 ))}
+
+                {/* Temporary Tables Section */}
+                <div className="mt-4">
+                  <h3 className="px-2 py-1 text-sm font-semibold text-slate-500 uppercase flex items-center justify-between">
+                    <span>Temporary Tables</span>
+                    <HelpCircle size={14} className="opacity-70 cursor-help" title="Tables created during your current session" />
+                  </h3>
+                  <div className="mt-1 space-y-1">
+                    {tempTables.map((table) => (
+                      <div 
+                        key={table.name}
+                        className="flex items-center justify-between py-1 px-2 rounded cursor-pointer text-sm hover:bg-slate-100"
+                      >
+                        <div className="flex items-center">
+                          <Table size={14} className="mr-2 text-emerald-500" />
+                          {table.name}
+                        </div>
+                        <span className="text-xs text-slate-500">{table.rowCount} rows</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             )}
           </ScrollArea>
@@ -446,75 +630,151 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="border-b">
               <TabsList className="px-4">
-                <TabsTrigger value="sql">SQL Editor</TabsTrigger>
+                <TabsTrigger value="notebook" className="gap-1">
+                  <Code size={16} />
+                  SQL Notebook
+                </TabsTrigger>
                 <TabsTrigger value="results">Results</TabsTrigger>
-                <TabsTrigger value="preview">Table Preview</TabsTrigger>
+                <TabsTrigger value="examples">Query Examples</TabsTrigger>
+                <TabsTrigger value="documentation">Documentation</TabsTrigger>
               </TabsList>
             </div>
             
-            <TabsContent value="sql" className="flex-1 flex flex-col p-4 data-[state=active]:flex data-[state=inactive]:hidden">
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="sql-editor">SQL Query</Label>
-                  <Button 
-                    size="sm" 
-                    onClick={handleRunQuery}
-                    disabled={isRunningQuery}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {isRunningQuery ? "Running..." : "Run SQL"}
-                    {!isRunningQuery && <Play size={14} className="ml-2" />}
-                  </Button>
-                </div>
-                <Textarea 
-                  id="sql-editor"
-                  className="w-full h-60 p-4 border rounded-md font-mono text-sm"
-                  value={sqlQuery}
-                  onChange={(e) => setSqlQuery(e.target.value)}
-                  placeholder="Write your SQL query here..."
-                />
-              </div>
-              
-              <div className="mt-6">
-                <Label htmlFor="nl-prompt" className="mb-2 block">Natural Language to SQL</Label>
-                <div className="flex">
-                  <Input
-                    id="nl-prompt"
-                    value={promptText}
-                    onChange={(e) => setPromptText(e.target.value)}
-                    placeholder="Describe what data you need in natural language..."
-                    className="flex-1"
-                  />
-                  <Button 
-                    className="ml-2 bg-blue-600 hover:bg-blue-700"
-                    onClick={handleGenerateSQL}
-                    disabled={isGenerating}
-                  >
-                    {isGenerating ? "Generating..." : "Generate SQL"}
-                  </Button>
-                </div>
-                <div className="mt-4">
-                  <div className="text-xs text-slate-500 mb-2 flex items-center">
-                    <ArrowDown size={12} className="inline mr-1" />
-                    Try these example prompts:
+            {/* SQL Notebook Tab */}
+            <TabsContent value="notebook" className="flex-1 flex flex-col p-4 data-[state=active]:flex data-[state=inactive]:hidden overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {/* Natural Language to SQL Input (at the top) */}
+                <div className="mb-6">
+                  <Label htmlFor="nl-prompt" className="mb-2 block font-medium">Natural Language to SQL</Label>
+                  <div className="flex">
+                    <Input
+                      id="nl-prompt"
+                      value={promptText}
+                      onChange={(e) => setPromptText(e.target.value)}
+                      placeholder="Describe what data you need in natural language..."
+                      className="flex-1"
+                    />
+                    <Button 
+                      className="ml-2 bg-blue-600 hover:bg-blue-700"
+                      onClick={handleGenerateSQL}
+                      disabled={isGenerating}
+                    >
+                      {isGenerating ? "Generating..." : "Generate SQL"}
+                    </Button>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {suggestedPrompts.map((prompt, index) => (
-                      <Button 
-                        key={index} 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => applySuggestedPrompt(prompt)}
-                        className="text-xs bg-slate-50 hover:bg-slate-100 transition-all"
-                      >
-                        "{prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt}"
-                      </Button>
+                  <div className="mt-2">
+                    <div className="text-xs text-slate-500 mb-1 flex items-center">
+                      <ArrowDown size={12} className="inline mr-1" />
+                      Try these example prompts:
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedPrompts.map((prompt, index) => (
+                        <Button 
+                          key={index} 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => applySuggestedPrompt(prompt)}
+                          className="text-xs bg-slate-50 hover:bg-slate-100 transition-all"
+                        >
+                          "{prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt}"
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Notebook Cells */}
+                <div className="flex-1 overflow-auto pb-4">
+                  <div className="space-y-6">
+                    {notebookCells.map((cell, index) => (
+                      <div key={cell.id} className="border rounded-md overflow-hidden">
+                        <div className="bg-slate-50 p-2 border-b flex items-center justify-between">
+                          <div className="flex items-center">
+                            <span className="text-xs text-slate-500 font-mono">[{index + 1}]</span>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="ml-2 h-7 text-xs"
+                              onClick={() => runNotebookCell(cell.id)}
+                              disabled={cell.isRunning}
+                            >
+                              {cell.isRunning ? "Running..." : "Run"}
+                              {!cell.isRunning && <Play size={12} className="ml-1" />}
+                            </Button>
+                          </div>
+                          <div>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => deleteNotebookCell(cell.id)}
+                            >
+                              <Trash size={12} />
+                            </Button>
+                          </div>
+                        </div>
+                        <div>
+                          <Textarea 
+                            value={cell.sql}
+                            onChange={(e) => updateNotebookCell(cell.id, e.target.value)}
+                            className="w-full p-4 border-0 rounded-none shadow-none font-mono text-sm min-h-[120px]"
+                            placeholder="Write your SQL here..."
+                          />
+                        </div>
+                        
+                        {/* Cell Results */}
+                        {cell.results && (
+                          <div className="border-t">
+                            <div className="bg-slate-50 p-2 border-b flex items-center justify-between">
+                              <span className="text-xs text-slate-500">Results: {cell.results.rowCount} rows ({cell.results.executionTime})</span>
+                            </div>
+                            <div className="max-h-[300px] overflow-auto">
+                              <UITable>
+                                <TableHeader>
+                                  <TableRow>
+                                    {cell.results.columns.map((column, i) => (
+                                      <TableHead key={i} className="font-semibold">{column}</TableHead>
+                                    ))}
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {cell.results.rows.slice(0, 5).map((row, i) => (
+                                    <TableRow key={i} className="hover:bg-slate-50">
+                                      {row.map((cell, j) => (
+                                        <TableCell key={j}>{cell}</TableCell>
+                                      ))}
+                                    </TableRow>
+                                  ))}
+                                </TableBody>
+                              </UITable>
+                              {cell.results.rows.length > 5 && (
+                                <div className="text-center py-2 text-sm text-slate-500">
+                                  Showing 5 of {cell.results.rowCount} rows
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ))}
                   </div>
+                </div>
+                
+                {/* Add Cell Button */}
+                <div className="mt-4 flex justify-center">
+                  <Button 
+                    variant="outline"
+                    onClick={() => addNotebookCell()}
+                    className="gap-1"
+                  >
+                    <Plus size={16} />
+                    Add Cell
+                  </Button>
                 </div>
               </div>
             </TabsContent>
             
+            {/* Results Tab */}
             <TabsContent value="results" className="flex-1 p-4 data-[state=active]:flex data-[state=inactive]:hidden flex-col">
               {queryResult ? (
                 <div className="flex-1 flex flex-col">
@@ -549,7 +809,7 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                   <div className="mt-4 text-center">
                     <Button 
                       variant="outline" 
-                      onClick={() => setActiveTab("sql")}
+                      onClick={() => setActiveTab("notebook")}
                       size="sm"
                       className="text-sm"
                     >
@@ -568,12 +828,164 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
               )}
             </TabsContent>
             
-            <TabsContent value="preview" className="flex-1 p-4">
-              <div className="border rounded-md h-full flex items-center justify-center text-slate-500">
-                <div className="text-center">
-                  <Table size={36} className="mx-auto mb-2 opacity-40" />
-                  <p>Select a table to preview data</p>
+            {/* Query Examples Tab */}
+            <TabsContent value="examples" className="flex-1 p-4 overflow-auto">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-2">Query Examples</h2>
+                <p className="text-slate-600 text-sm mb-4">
+                  Add example queries that represent common patterns in your data analysis. These help improve SQL generation accuracy.
+                </p>
+                
+                <div className="border rounded-md p-4 bg-slate-50">
+                  <Label htmlFor="new-example" className="block mb-2">Add a new example query:</Label>
+                  <Textarea 
+                    id="new-example"
+                    placeholder="-- Example: Find top customers by revenue
+SELECT c.customer_id, c.name, SUM(o.total) as total_spent
+FROM customers c
+JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.name
+ORDER BY total_spent DESC
+LIMIT 10;"
+                    className="w-full h-40 font-mono text-sm mb-3"
+                  />
+                  <Button 
+                    onClick={() => handleAddQueryExample(
+                      (document.getElementById("new-example") as HTMLTextAreaElement).value
+                    )}
+                    className="gap-1"
+                  >
+                    <Save size={16} />
+                    Save Example
+                  </Button>
                 </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="text-md font-medium">Saved Examples:</h3>
+                {queryExamples.map((example, index) => (
+                  <Card key={index} className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-medium">Example #{index + 1}</h4>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Trash size={16} />
+                      </Button>
+                    </div>
+                    <pre className="bg-slate-50 p-3 rounded border text-sm font-mono overflow-auto max-h-[200px]">
+                      {example}
+                    </pre>
+                  </Card>
+                ))}
+                
+                {queryExamples.length === 0 && (
+                  <div className="text-center py-8 text-slate-500">
+                    <p>No examples added yet</p>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            {/* Documentation Tab */}
+            <TabsContent value="documentation" className="flex-1 p-4 overflow-auto">
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-2">Project Documentation</h2>
+                <p className="text-slate-600 text-sm mb-4">
+                  Upload documentation to provide context for SQL generation. This helps the AI understand your data model and business rules.
+                </p>
+                
+                <div className="border-2 border-dashed border-slate-300 rounded-md p-8 text-center">
+                  <Upload className="h-12 w-12 mx-auto mb-4 text-slate-400" />
+                  <p className="mb-4 text-slate-600">Drag and drop files or click to upload</p>
+                  <input
+                    type="file"
+                    id="file-upload"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleDocumentUpload(e.target.files)}
+                  />
+                  <Button 
+                    variant="outline"
+                    onClick={() => document.getElementById("file-upload")?.click()}
+                  >
+                    Upload Files
+                  </Button>
+                </div>
+              </div>
+              
+              <div>
+                <h3 className="text-md font-medium mb-4">Uploaded Documentation:</h3>
+                
+                {documentation.length > 0 ? (
+                  <div className="space-y-3">
+                    {documentation.map((doc, index) => (
+                      <div key={index} className="flex items-center p-3 border rounded-md bg-slate-50">
+                        <FileText className="h-5 w-5 mr-3 text-blue-500" />
+                        <span className="flex-1">{doc}</span>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Trash size={16} />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500 border rounded-md">
+                    <p>No documentation uploaded yet</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mt-8">
+                <h3 className="text-md font-medium mb-4">Table Metadata</h3>
+                <p className="text-slate-600 text-sm mb-4">
+                  Document your tables and columns to improve SQL generation accuracy.
+                </p>
+                
+                {schemas.map((schema) => (
+                  <div key={schema.id} className="mb-4">
+                    <h4 className="font-medium text-sm mb-2">{schema.name} Schema</h4>
+                    
+                    <div className="space-y-3">
+                      {schema.tables.map((table) => (
+                        <Card key={table.id} className="p-4">
+                          <div className="flex items-center mb-3">
+                            <Table size={16} className="mr-2" />
+                            <h5 className="font-medium">{table.name}</h5>
+                          </div>
+                          
+                          <div className="bg-slate-50 rounded border overflow-hidden">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b">
+                                  <th className="px-3 py-2 text-left font-medium">Column</th>
+                                  <th className="px-3 py-2 text-left font-medium">Type</th>
+                                  <th className="px-3 py-2 text-left font-medium">Description</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {table.columns.map((column, i) => (
+                                  <tr key={i} className={i !== table.columns.length - 1 ? "border-b" : ""}>
+                                    <td className="px-3 py-2 font-mono">{column.name}</td>
+                                    <td className="px-3 py-2 text-slate-600">{column.type}</td>
+                                    <td className="px-3 py-2">
+                                      <Input 
+                                        placeholder="Add description..."
+                                        className="h-7 text-xs"
+                                      />
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          
+                          <div className="mt-3 flex justify-end">
+                            <Button size="sm" variant="outline">Save Metadata</Button>
+                          </div>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </TabsContent>
           </Tabs>
