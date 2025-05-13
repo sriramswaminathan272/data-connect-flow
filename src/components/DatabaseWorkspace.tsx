@@ -5,7 +5,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { ChevronDown, ChevronRight, Search, Table, Database, FileText, Play, Eye } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Table, Database, FileText, Play, Eye, Code, ArrowDown } from "lucide-react";
 import { ConnectorType } from "./DatabaseConnector";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Textarea } from "@/components/ui/textarea";
 
 interface DatabaseWorkspaceProps {
   connector: ConnectorType;
@@ -48,6 +49,13 @@ interface TablePreviewData {
   rows: any[][];
 }
 
+interface QueryResultType {
+  columns: string[];
+  rows: any[][];
+  executionTime: string;
+  rowCount: number;
+}
+
 const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) => {
   const [schemas, setSchemas] = useState<SchemaType[]>([]);
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null);
@@ -60,6 +68,15 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
   const [tablePreviewOpen, setTablePreviewOpen] = useState(false);
   const [previewTableData, setPreviewTableData] = useState<TablePreviewData | null>(null);
   const [previewTableName, setPreviewTableName] = useState("");
+  const [activeTab, setActiveTab] = useState("sql");
+  const [queryResult, setQueryResult] = useState<QueryResultType | null>(null);
+  const [suggestedPrompts, setSuggestedPrompts] = useState([
+    "Show me total sales by region for the last quarter",
+    "Find customers who made more than 5 orders last month",
+    "Calculate average order value by product category",
+    "List top 10 products by revenue",
+    "Show daily active users trend over the past 30 days"
+  ]);
 
   useEffect(() => {
     // Simulate loading schemas from database
@@ -179,7 +196,79 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
     setTimeout(() => {
       setIsRunningQuery(false);
       toast.success("Query executed successfully");
+      
+      // Switch to results tab
+      setActiveTab("results");
+      
+      // Generate mock results based on query
+      const mockResult = generateMockQueryResults(sqlQuery);
+      setQueryResult(mockResult);
     }, 1500);
+  };
+
+  const generateMockQueryResults = (query: string): QueryResultType => {
+    // Simple parsing to determine what kind of mock data to return
+    const queryLower = query.toLowerCase();
+    let columns: string[] = [];
+    let rows: any[][] = [];
+    let rowCount = Math.floor(Math.random() * 100) + 5;
+    
+    if (queryLower.includes("customer")) {
+      columns = ["customer_id", "name", "email", "created_at", "orders_count", "lifetime_value"];
+      
+      // Generate mock rows
+      rows = Array.from({ length: rowCount }).map((_, i) => [
+        1000 + i,
+        `Customer ${1000 + i}`,
+        `customer${1000 + i}@example.com`,
+        new Date(Date.now() - Math.random() * 10000000000).toISOString().split('T')[0],
+        Math.floor(Math.random() * 50),
+        `$${(Math.random() * 10000).toFixed(2)}`
+      ]);
+    } else if (queryLower.includes("order")) {
+      columns = ["order_id", "customer_id", "order_date", "status", "total", "items"];
+      
+      // Generate mock rows
+      rows = Array.from({ length: rowCount }).map((_, i) => [
+        5000 + i,
+        1000 + Math.floor(Math.random() * 500),
+        new Date(Date.now() - Math.random() * 10000000000).toISOString().split('T')[0],
+        ["Completed", "Processing", "Shipped", "Cancelled"][Math.floor(Math.random() * 4)],
+        `$${(Math.random() * 1000).toFixed(2)}`,
+        Math.floor(Math.random() * 20) + 1
+      ]);
+    } else if (queryLower.includes("product")) {
+      columns = ["product_id", "name", "category", "price", "stock", "rating"];
+      
+      // Generate mock rows
+      rows = Array.from({ length: rowCount }).map((_, i) => [
+        3000 + i,
+        `Product ${3000 + i}`,
+        ["Electronics", "Clothing", "Home", "Books", "Food"][Math.floor(Math.random() * 5)],
+        `$${(Math.random() * 500).toFixed(2)}`,
+        Math.floor(Math.random() * 1000),
+        (Math.random() * 5).toFixed(1)
+      ]);
+    } else {
+      // Generic results
+      columns = ["id", "name", "value", "date", "status"];
+      
+      // Generate mock rows
+      rows = Array.from({ length: rowCount }).map((_, i) => [
+        i + 1,
+        `Item ${i + 1}`,
+        Math.floor(Math.random() * 100000),
+        new Date(Date.now() - Math.random() * 10000000000).toISOString().split('T')[0],
+        ["Active", "Inactive", "Pending", "Completed"][Math.floor(Math.random() * 4)]
+      ]);
+    }
+    
+    return {
+      columns,
+      rows,
+      executionTime: `${(Math.random() * 3).toFixed(2)} seconds`,
+      rowCount
+    };
   };
 
   const handleGenerateSQL = () => {
@@ -244,6 +333,14 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
       
       setTablePreviewOpen(true);
     }
+  };
+
+  const applySuggestedPrompt = (prompt: string) => {
+    setPromptText(prompt);
+    // Automatically generate SQL for the selected prompt
+    setTimeout(() => {
+      handleGenerateSQL();
+    }, 100);
   };
   
   return (
@@ -346,7 +443,7 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
         
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col">
-          <Tabs defaultValue="sql" className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
             <div className="border-b">
               <TabsList className="px-4">
                 <TabsTrigger value="sql">SQL Editor</TabsTrigger>
@@ -355,8 +452,30 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
               </TabsList>
             </div>
             
-            <TabsContent value="sql" className="flex-1 flex flex-col p-4">
-              <div className="mb-6">
+            <TabsContent value="sql" className="flex-1 flex flex-col p-4 data-[state=active]:flex data-[state=inactive]:hidden">
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="sql-editor">SQL Query</Label>
+                  <Button 
+                    size="sm" 
+                    onClick={handleRunQuery}
+                    disabled={isRunningQuery}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isRunningQuery ? "Running..." : "Run SQL"}
+                    {!isRunningQuery && <Play size={14} className="ml-2" />}
+                  </Button>
+                </div>
+                <Textarea 
+                  id="sql-editor"
+                  className="w-full h-60 p-4 border rounded-md font-mono text-sm"
+                  value={sqlQuery}
+                  onChange={(e) => setSqlQuery(e.target.value)}
+                  placeholder="Write your SQL query here..."
+                />
+              </div>
+              
+              <div className="mt-6">
                 <Label htmlFor="nl-prompt" className="mb-2 block">Natural Language to SQL</Label>
                 <div className="flex">
                   <Input
@@ -374,41 +493,79 @@ const DatabaseWorkspace = ({ connector, onDisconnect }: DatabaseWorkspaceProps) 
                     {isGenerating ? "Generating..." : "Generate SQL"}
                   </Button>
                 </div>
-                <p className="mt-2 text-xs text-slate-500">
-                  Example: "Show me total orders by customer, sorted by highest value"
-                </p>
-              </div>
-              
-              <div className="flex-1">
-                <div className="flex items-center justify-between mb-2">
-                  <Label htmlFor="sql-editor">SQL Query</Label>
-                  <Button 
-                    size="sm" 
-                    onClick={handleRunQuery}
-                    disabled={isRunningQuery}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    {isRunningQuery ? "Running..." : "Run SQL"}
-                    {!isRunningQuery && <Play size={14} className="ml-2" />}
-                  </Button>
+                <div className="mt-4">
+                  <div className="text-xs text-slate-500 mb-2 flex items-center">
+                    <ArrowDown size={12} className="inline mr-1" />
+                    Try these example prompts:
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedPrompts.map((prompt, index) => (
+                      <Button 
+                        key={index} 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => applySuggestedPrompt(prompt)}
+                        className="text-xs bg-slate-50 hover:bg-slate-100 transition-all"
+                      >
+                        "{prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt}"
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-                <textarea 
-                  id="sql-editor"
-                  className="w-full h-60 p-4 border rounded-md font-mono text-sm"
-                  value={sqlQuery}
-                  onChange={(e) => setSqlQuery(e.target.value)}
-                  placeholder="Write your SQL query here..."
-                />
               </div>
             </TabsContent>
             
-            <TabsContent value="results" className="flex-1 p-4">
-              <div className="border rounded-md h-full flex items-center justify-center text-slate-500">
-                <div className="text-center">
-                  <FileText size={36} className="mx-auto mb-2 opacity-40" />
-                  <p>Run a query to see results</p>
+            <TabsContent value="results" className="flex-1 p-4 data-[state=active]:flex data-[state=inactive]:hidden flex-col">
+              {queryResult ? (
+                <div className="flex-1 flex flex-col">
+                  <div className="flex items-center justify-between mb-4 text-sm text-slate-500">
+                    <div>
+                      <span className="font-medium">{queryResult.rowCount} rows</span> returned
+                    </div>
+                    <div>Execution time: {queryResult.executionTime}</div>
+                  </div>
+                  
+                  <div className="border rounded-md overflow-auto flex-1">
+                    <UITable>
+                      <TableHeader>
+                        <TableRow>
+                          {queryResult.columns.map((column, i) => (
+                            <TableHead key={i} className="font-semibold">{column}</TableHead>
+                          ))}
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {queryResult.rows.map((row, i) => (
+                          <TableRow key={i} className="hover:bg-slate-50">
+                            {row.map((cell, j) => (
+                              <TableCell key={j}>{cell}</TableCell>
+                            ))}
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </UITable>
+                  </div>
+                  
+                  <div className="mt-4 text-center">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setActiveTab("sql")}
+                      size="sm"
+                      className="text-sm"
+                    >
+                      <Code size={14} className="mr-1" />
+                      Back to SQL Editor
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="border rounded-md h-full flex items-center justify-center text-slate-500">
+                  <div className="text-center">
+                    <FileText size={36} className="mx-auto mb-2 opacity-40" />
+                    <p>Run a query to see results</p>
+                  </div>
+                </div>
+              )}
             </TabsContent>
             
             <TabsContent value="preview" className="flex-1 p-4">
