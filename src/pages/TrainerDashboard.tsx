@@ -24,30 +24,30 @@ const TrainerDashboard = () => {
       <div className="container max-w-7xl mx-auto px-4 py-8">
         <AccuracyScorecard accuracy={accuracy} />
         
-        {/* Tabs for Single QnA vs Batch QnA */}
-        <Tabs value={trainerTab} onValueChange={setTrainerTab} className="mb-6">
+        {/* Main Tabs for Single QnA vs Batch QnA */}
+        <Tabs value={trainerTab} onValueChange={setTrainerTab}>
           <TabsList>
             <TabsTrigger value="single">Single QnA</TabsTrigger>
             <TabsTrigger value="batch">Batch QnA Trainer</TabsTrigger>
           </TabsList>
+          
+          {/* Single QnA Content */}
+          <TabsContent value="single" className="mt-6">
+            <SingleQnATab 
+              nlQuestion={nlQuestion}
+              setNlQuestion={setNlQuestion}
+              generatedSQL={generatedSQL}
+              setGeneratedSQL={setGeneratedSQL}
+            />
+          </TabsContent>
+
+          {/* Batch QnA Trainer Content */}
+          <TabsContent value="batch" className="mt-6">
+            <div className="h-[calc(100vh-350px)]">
+              <BatchQnATrainer />
+            </div>
+          </TabsContent>
         </Tabs>
-
-        {/* Single QnA Content */}
-        <TabsContent value="single" className="mt-0">
-          <SingleQnATab 
-            nlQuestion={nlQuestion}
-            setNlQuestion={setNlQuestion}
-            generatedSQL={generatedSQL}
-            setGeneratedSQL={setGeneratedSQL}
-          />
-        </TabsContent>
-
-        {/* Batch QnA Trainer Content */}
-        <TabsContent value="batch" className="mt-0">
-          <div className="h-[calc(100vh-350px)]">
-            <BatchQnATrainer />
-          </div>
-        </TabsContent>
       </div>
     </div>
   );
