@@ -78,7 +78,7 @@ const TrainerDashboard = () => {
                 </div>
                 <h2 className="text-2xl font-semibold mb-2">Knowledge Graph Performance</h2>
                 <p className="text-slate-600 text-center">
-                  Your knowledge graph is performing well, but there's room for improvement.
+                  Your knowledge graph is performing well, but there&apos;s room for improvement.
                 </p>
               </div>
             </CardContent>
@@ -216,7 +216,7 @@ const TrainerDashboard = () => {
                           SELECT customer_id, name, email, COUNT(order_id) as order_count
                           FROM customers LEFT JOIN orders USING(customer_id)
                           GROUP BY customer_id, name, email
-                          HAVING COUNT(order_id) > 5
+                          HAVING COUNT(order_id) &gt; 5
                           ORDER BY order_count DESC;
                         </pre>
                       </div>
