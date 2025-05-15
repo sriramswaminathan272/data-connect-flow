@@ -8,6 +8,10 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import TrainerDashboard from "./pages/TrainerDashboard";
+import AppLayout from "./components/AppLayout";
+import HypothesisTesting from "./pages/HypothesisTesting";
+import ScenarioAnalysis from "./pages/ScenarioAnalysis";
+import MachineLearning from "./pages/MachineLearning";
 
 const queryClient = new QueryClient();
 
@@ -18,8 +22,31 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/connect" element={<Index />} />
+          <Route path="/" element={
+            <AppLayout>
+              <Dashboard />
+            </AppLayout>
+          } />
+          <Route path="/connect" element={
+            <AppLayout>
+              <Index />
+            </AppLayout>
+          } />
+          <Route path="/hypothesis" element={
+            <AppLayout>
+              <HypothesisTesting />
+            </AppLayout>
+          } />
+          <Route path="/scenario" element={
+            <AppLayout>
+              <ScenarioAnalysis />
+            </AppLayout>
+          } />
+          <Route path="/ml" element={
+            <AppLayout>
+              <MachineLearning />
+            </AppLayout>
+          } />
           <Route path="/trainer" element={<TrainerDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
