@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { Flame } from "lucide-react";
 
 const Dashboard = () => {
   return (
@@ -61,6 +62,28 @@ const Dashboard = () => {
           </CardContent>
           <CardFooter>
             <Button variant="outline">Read Docs</Button>
+          </CardFooter>
+        </Card>
+
+        <Card className="border-orange-200">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Flame size={18} className="text-orange-500" />
+              Grill Me — Brainstorm
+            </CardTitle>
+            <CardDescription>
+              Super-powered brainstorming and auto research
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Enter a topic, get grilled with deep questions, and build a structured research plan with gap analysis.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Link to="/brainstorm">
+              <Button className="bg-orange-600 hover:bg-orange-700">Start Brainstorming</Button>
+            </Link>
           </CardFooter>
         </Card>
       </div>

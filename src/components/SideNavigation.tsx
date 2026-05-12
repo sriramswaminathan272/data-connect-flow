@@ -13,7 +13,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ChevronDown, ChevronRight, Database, FlaskConical, BarChart2, BrainCircuit } from "lucide-react";
+import { ChevronDown, ChevronRight, Database, FlaskConical, BarChart2, BrainCircuit, Flame } from "lucide-react";
 
 interface NavGroupProps {
   title: string;
@@ -98,6 +98,11 @@ const SideNavigation = () => {
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                     <NavLink to="/ml" icon={<BrainCircuit />}>Machine Learning Toolbox</NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/brainstorm" icon={<Flame />}>Grill Me — Brainstorm</NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>

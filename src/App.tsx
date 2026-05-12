@@ -12,6 +12,7 @@ import AppLayout from "./components/AppLayout";
 import HypothesisTesting from "./pages/HypothesisTesting";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import MachineLearning from "./pages/MachineLearning";
+import BrainstormingResearch from "./pages/BrainstormingResearch";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +46,11 @@ const App = () => (
           <Route path="/ml" element={
             <AppLayout>
               <MachineLearning />
+            </AppLayout>
+          } />
+          <Route path="/brainstorm" element={
+            <AppLayout>
+              <BrainstormingResearch />
             </AppLayout>
           } />
           <Route path="/trainer" element={<TrainerDashboard />} />
