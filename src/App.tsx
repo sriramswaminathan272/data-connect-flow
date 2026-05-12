@@ -13,6 +13,7 @@ import HypothesisTesting from "./pages/HypothesisTesting";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import MachineLearning from "./pages/MachineLearning";
 import BrainstormingResearch from "./pages/BrainstormingResearch";
+import CommoditiesLab from "./pages/CommoditiesLab";
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,11 @@ const App = () => (
           <Route path="/brainstorm" element={
             <AppLayout>
               <BrainstormingResearch />
+            </AppLayout>
+          } />
+          <Route path="/commodities-lab" element={
+            <AppLayout>
+              <CommoditiesLab />
             </AppLayout>
           } />
           <Route path="/trainer" element={<TrainerDashboard />} />
