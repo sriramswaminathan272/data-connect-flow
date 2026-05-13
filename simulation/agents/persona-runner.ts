@@ -36,10 +36,21 @@ async function callLLM(system: string, user: string, maxTokens = 800): Promise<s
 function simulateMining(profile: CompanyProfile): SimulatedDiscovery {
   const groundTruth = new Set(profile.persona.toolStack);
 
-  const detectedSet = new Set<string>();
+  // Count email signal strength per tool (more emails = stronger signal)
+  const emailSignals = new Map<string, number>();
   for (const ep of profile.persona.emailPatterns) {
-    if (ep.tool) detectedSet.add(ep.tool);
+    if (ep.tool) emailSignals.set(ep.tool, (emailSignals.get(ep.tool) ?? 0) + 1);
   }
+
+  // Probabilistic detection: weak signal (1 email) is missed ~35% of the time,
+  // simulating real-world inbox noise, spam filtering, and notification opt-outs.
+  const detectedSet = new Set<string>();
+  for (const [tool, count] of emailSignals) {
+    const detectProb = count === 1 ? 0.65 : count === 2 ? 0.85 : 0.95;
+    if (Math.random() < detectProb) detectedSet.add(tool);
+  }
+
+  // Calendar-based video tool detection (deterministic — video links are reliable)
   for (const cp of profile.persona.calendarPatterns) {
     if (cp.videoLink?.includes("zoom")) detectedSet.add("Zoom");
     else if (cp.videoLink?.includes("meet.google")) detectedSet.add("Google Meet");
