@@ -12,7 +12,8 @@
     "simulate": "tsx simulation/run.ts",
     "simulate:dev": "npm run simulate && npm run dev",
     "check-depth": "tsx simulation/check-depth.ts",
-    "improve-depth": "tsx simulation/improve-depth.ts"
+    "improve-depth": "tsx simulation/improve-depth.ts",
+    "generate-warehouse": "tsx simulation/data-warehouse/quickcart/generate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",

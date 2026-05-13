@@ -1,0 +1,485 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: quickcart_raw
+    description: "Raw ingestion layer — append-only tables loaded from Kafka (transactional) and S3 (batch exports). Never modified after load."
+    loader: airbyte
+    loaded_at_field: _loaded_at
+
+    tables:
+      # ── Users & Sessions ──────────────────────────────────────────────────
+      - name: users
+        description: "User registration and profile data from the QuickCart app/web."
+        columns:
+          - name: user_id
+            description: "UUID generated at registration time."
+            tests: [unique, not_null]
+          - name: created_at
+            description: "Account registration timestamp (IST, stored as UTC)."
+          - name: phone_hash
+            description: "SHA256 of phone number — PII masked at source."
+          - name: city
+            description: "City from registration address."
+          - name: state
+          - name: pincode
+          - name: is_plus_member
+            description: "QuickCart Plus subscription flag."
+          - name: acquisition_channel
+            description: "First-touch channel: organic, google_ads, meta, referral, influencer."
+          - name: referrer_user_id
+            description: "Populated when acquisition_channel = referral."
+          - name: _loaded_at
+
+      - name: user_sessions
+        description: "Web and app session events — one row per session. Sessions expire after 30 min inactivity."
+        columns:
+          - name: session_id
+          - name: user_id
+          - name: session_start_at
+          - name: session_end_at
+          - name: platform
+            description: "android | ios | web"
+          - name: app_version
+          - name: device_type
+          - name: city
+          - name: is_authenticated
+          - name: page_count
+          - name: _loaded_at
+
+      - name: user_events
+        description: "Granular clickstream events — one row per user action. ~50M rows/day."
+        columns:
+          - name: event_id
+          - name: session_id
+          - name: user_id
+          - name: event_type
+            description: "page_view | product_view | search | add_to_cart | remove_from_cart | wishlist_add | checkout_start | checkout_complete | review_submit"
+          - name: event_at
+          - name: product_id
+            description: "Populated for product-level events."
+          - name: category_id
+          - name: seller_id
+          - name: search_query
+            description: "Populated for search events."
+          - name: properties
+            description: "JSON blob — event-specific metadata."
+          - name: _loaded_at
+
+      # ── Catalogue ─────────────────────────────────────────────────────────
+      - name: products
+        description: "Seller-listed products. Each seller_id + product_id combination is unique."
+        columns:
+          - name: product_id
+            tests: [unique, not_null]
+          - name: seller_id
+          - name: category_id
+          - name: brand_id
+          - name: title
+          - name: description
+          - name: mrp
+            description: "Maximum retail price in paise (avoid floating point)."
+          - name: is_active
+          - name: created_at
+          - name: updated_at
+          - name: _loaded_at
+
+      - name: product_variants
+        description: "SKU-level variants per product (size, colour). One product → many variants."
+        columns:
+          - name: variant_id
+          - name: product_id
+          - name: seller_id
+          - name: sku
+            tests: [unique, not_null]
+          - name: attributes
+            description: "JSON: {size, colour, material, ...}"
+          - name: current_price
+            description: "Listed price in paise."
+          - name: stock_quantity
+          - name: is_active
+          - name: _loaded_at
+
+      - name: categories
+        description: "Category hierarchy — up to 5 levels deep (Electronics → Mobiles → Smartphones → Android → Under ₹15K)."
+        columns:
+          - name: category_id
+            tests: [unique, not_null]
+          - name: parent_category_id
+            description: "NULL for root categories."
+          - name: name
+          - name: level
+            description: "1 = root, 5 = leaf."
+          - name: path
+            description: "Slash-separated path from root: Electronics/Mobiles/Smartphones"
+          - name: is_active
+          - name: _loaded_at
+
+      - name: brands
+        columns:
+          - name: brand_id
+            tests: [unique, not_null]
+          - name: name
+          - name: country_of_origin
+          - name: is_authorised
+            description: "Brand has signed QuickCart authorised seller agreement."
+          - name: _loaded_at
+
+      # ── Sellers ───────────────────────────────────────────────────────────
+      - name: sellers
+        description: "Marketplace seller accounts — both brand stores and individual resellers."
+        columns:
+          - name: seller_id
+            tests: [unique, not_null]
+          - name: display_name
+          - name: legal_name
+          - name: gstin
+          - name: pan_hash
+          - name: city
+          - name: state
+          - name: pincode
+          - name: tier
+            description: "gold | silver | bronze — recalibrated quarterly."
+          - name: account_status
+            description: "active | suspended | under_review | closed"
+          - name: onboarded_at
+          - name: _loaded_at
+
+      - name: seller_kyc
+        description: "KYC document verification records. Needed for GST compliance and payouts."
+        columns:
+          - name: kyc_id
+          - name: seller_id
+          - name: document_type
+            description: "pan | gstin | aadhaar | bank_account"
+          - name: verification_status
+            description: "pending | verified | rejected | resubmission_required"
+          - name: verified_at
+          - name: _loaded_at
+
+      # ── Orders ────────────────────────────────────────────────────────────
+      - name: orders
+        description: "Order headers — one row per checkout. An order can have items from multiple sellers (split shipments)."
+        columns:
+          - name: order_id
+            tests: [unique, not_null]
+          - name: user_id
+          - name: session_id
+            description: "Session in which checkout was completed."
+          - name: order_placed_at
+          - name: order_status
+            description: "placed | confirmed | shipped | out_for_delivery | delivered | cancelled | return_initiated | returned"
+          - name: total_mrp
+            description: "Sum of MRP across all items, in paise."
+          - name: total_selling_price
+            description: "Sum of actual prices charged, in paise (after discounts)."
+          - name: coupon_code
+          - name: coupon_discount
+          - name: delivery_pincode
+          - name: delivery_city
+          - name: delivery_state
+          - name: payment_method
+            description: "upi | card | netbanking | cod | emi | wallet | bnpl"
+          - name: is_plus_order
+            description: "Was the user a Plus member at order time."
+          - name: acquisition_channel
+            description: "Inherited from user profile — used for CAC attribution."
+          - name: _loaded_at
+
+      - name: order_items
+        description: "Line items within an order. One row per variant purchased."
+        columns:
+          - name: order_item_id
+            tests: [unique, not_null]
+          - name: order_id
+          - name: product_id
+          - name: variant_id
+          - name: seller_id
+          - name: quantity
+          - name: mrp
+            description: "MRP per unit at time of order."
+          - name: selling_price
+            description: "Price charged per unit."
+          - name: platform_commission_rate
+            description: "QuickCart's take rate — category-specific."
+          - name: coupon_discount_allocated
+          - name: item_status
+            description: "Mirrors parent order_status but per-item for split shipments."
+          - name: promised_delivery_at
+          - name: _loaded_at
+
+      - name: order_status_history
+        description: "Lifecycle events for each order_item — append-only audit trail."
+        columns:
+          - name: history_id
+          - name: order_item_id
+          - name: order_id
+          - name: status
+          - name: status_changed_at
+          - name: changed_by
+            description: "system | seller | logistics | customer_support"
+          - name: notes
+          - name: _loaded_at
+
+      - name: cart_events
+        description: "Add-to-cart and abandon events — key for funnel analysis."
+        columns:
+          - name: cart_event_id
+          - name: user_id
+          - name: session_id
+          - name: event_type
+            description: "add | remove | quantity_change | save_for_later"
+          - name: product_id
+          - name: variant_id
+          - name: seller_id
+          - name: quantity
+          - name: price_at_event
+          - name: event_at
+          - name: _loaded_at
+
+      # ── Payments ──────────────────────────────────────────────────────────
+      - name: payments
+        description: "Payment gateway transactions — one per order (or per retry)."
+        columns:
+          - name: payment_id
+            tests: [unique, not_null]
+          - name: order_id
+          - name: gateway
+            description: "razorpay | paytm | phonepe | juspay"
+          - name: method
+          - name: amount
+            description: "In paise."
+          - name: status
+            description: "initiated | authorized | captured | failed | refunded"
+          - name: gateway_reference_id
+          - name: utr
+            description: "Unique transaction reference — present for UPI."
+          - name: initiated_at
+          - name: completed_at
+          - name: failure_reason
+          - name: _loaded_at
+
+      - name: refunds
+        description: "Refund transactions — triggered by returns, cancellations, and CS actions."
+        columns:
+          - name: refund_id
+          - name: order_id
+          - name: order_item_id
+          - name: payment_id
+          - name: amount
+          - name: reason
+            description: "customer_return | seller_cancelled | platform_cancelled | cs_goodwill"
+          - name: refund_to
+            description: "original_payment_method | wallet | upi"
+          - name: status
+            description: "initiated | processed | failed"
+          - name: initiated_at
+          - name: processed_at
+          - name: _loaded_at
+
+      # ── Fulfilment ────────────────────────────────────────────────────────
+      - name: deliveries
+        description: "Logistics records — one per shipment (an order may split into multiple shipments)."
+        columns:
+          - name: delivery_id
+          - name: order_id
+          - name: seller_id
+          - name: warehouse_id
+          - name: courier_partner
+            description: "ekart | bluedart | delhivery | xpressbees | shadowfax"
+          - name: awb_number
+            description: "Airway bill — courier tracking reference."
+          - name: pickup_at
+          - name: dispatched_at
+          - name: out_for_delivery_at
+          - name: delivered_at
+          - name: promised_at
+          - name: delivery_status
+            description: "pending | picked_up | in_transit | out_for_delivery | delivered | failed | rto_initiated | rto_complete"
+          - name: delivery_attempts
+          - name: failure_reason
+          - name: _loaded_at
+
+      - name: returns
+        description: "Customer return requests — initiated post-delivery."
+        columns:
+          - name: return_id
+          - name: order_item_id
+          - name: order_id
+          - name: seller_id
+          - name: return_reason
+            description: "wrong_item | damaged | quality_issue | size_mismatch | not_as_described | changed_mind | other"
+          - name: return_type
+            description: "refund | exchange"
+          - name: return_status
+            description: "requested | approved | pickup_scheduled | picked_up | quality_checked | refund_initiated | completed | rejected"
+          - name: initiated_at
+          - name: pickup_at
+          - name: quality_check_result
+            description: "approved | partially_approved | rejected"
+          - name: seller_fault
+            description: "Boolean — whether return is seller-attributable (affects seller scoring)."
+          - name: _loaded_at
+
+      - name: warehouses
+        columns:
+          - name: warehouse_id
+            tests: [unique, not_null]
+          - name: name
+          - name: city
+          - name: state
+          - name: pincode
+          - name: type
+            description: "fulfilment_centre | sort_hub | delivery_hub"
+          - name: capacity_sqft
+          - name: is_active
+          - name: _loaded_at
+
+      - name: inventory
+        description: "Warehouse-level stock per SKU — updated on every stock movement."
+        columns:
+          - name: inventory_id
+          - name: warehouse_id
+          - name: variant_id
+          - name: seller_id
+          - name: quantity_on_hand
+          - name: quantity_reserved
+            description: "Reserved for open orders — not available for new orders."
+          - name: reorder_point
+          - name: updated_at
+          - name: _loaded_at
+
+      # ── Reviews & Ratings ─────────────────────────────────────────────────
+      - name: product_reviews
+        description: "Post-purchase reviews — shown on PDP. Verified purchase only."
+        columns:
+          - name: review_id
+          - name: product_id
+          - name: seller_id
+          - name: user_id
+          - name: order_item_id
+          - name: rating
+            description: "1–5 stars."
+          - name: title
+          - name: body
+          - name: is_verified_purchase
+          - name: helpful_votes
+          - name: created_at
+          - name: _loaded_at
+
+      # ── Marketing ─────────────────────────────────────────────────────────
+      - name: campaigns
+        description: "Marketing campaign definitions — spanning paid, push, email, and in-app."
+        columns:
+          - name: campaign_id
+          - name: name
+          - name: type
+            description: "google_ads | meta | push_notification | email | in_app_banner | influencer"
+          - name: objective
+            description: "acquisition | retention | reactivation | category_awareness"
+          - name: start_at
+          - name: end_at
+          - name: budget
+            description: "In paise."
+          - name: spend
+          - name: target_segment
+            description: "JSON — segment definition used in channel."
+          - name: created_by
+          - name: _loaded_at
+
+      - name: campaign_impressions
+        description: "Ad impression log — one row per impression. Very high volume (~200M rows/month)."
+        columns:
+          - name: impression_id
+          - name: campaign_id
+          - name: user_id
+          - name: channel
+          - name: placement
+          - name: impressed_at
+          - name: _loaded_at
+
+      - name: campaign_clicks
+        description: "Clicks on campaign impressions."
+        columns:
+          - name: click_id
+          - name: impression_id
+          - name: campaign_id
+          - name: user_id
+          - name: clicked_at
+          - name: _loaded_at
+
+      - name: campaign_conversions
+        description: "Orders attributed to campaigns — multi-touch attribution, 7-day window."
+        columns:
+          - name: conversion_id
+          - name: order_id
+          - name: campaign_id
+          - name: user_id
+          - name: attribution_model
+            description: "last_touch | first_touch | linear | data_driven"
+          - name: attributed_gmv
+          - name: converted_at
+          - name: _loaded_at
+
+      # ── Search ────────────────────────────────────────────────────────────
+      - name: search_queries
+        description: "All search events — one row per query. ~30M/month."
+        columns:
+          - name: query_id
+          - name: user_id
+          - name: session_id
+          - name: query_text
+          - name: result_count
+          - name: clicked_product_id
+            description: "NULL if no click-through from this query."
+          - name: click_rank
+          - name: queried_at
+          - name: _loaded_at
+
+      # ── Experiments ───────────────────────────────────────────────────────
+      - name: experiments
+        columns:
+          - name: experiment_id
+            tests: [unique, not_null]
+          - name: name
+          - name: hypothesis
+          - name: primary_metric
+          - name: guardrail_metrics
+            description: "JSON array of metrics that must not regress."
+          - name: started_at
+          - name: ended_at
+          - name: status
+            description: "draft | running | paused | completed | stopped"
+          - name: winning_variant
+          - name: _loaded_at
+
+      - name: experiment_assignments
+        description: "User-to-experiment variant assignment — one row per user per experiment."
+        columns:
+          - name: assignment_id
+          - name: experiment_id
+          - name: user_id
+          - name: variant
+            description: "control | treatment_a | treatment_b"
+          - name: assigned_at
+          - name: _loaded_at
+
+      - name: seller_performance_daily
+        description: "Pre-aggregated daily seller metrics — computed by Airflow DAG seller_gmv_daily_refresh."
+        columns:
+          - name: perf_id
+          - name: seller_id
+          - name: date
+          - name: gmv
+            description: "Gross merchandise value in paise."
+          - name: orders_count
+          - name: items_sold
+          - name: return_count
+          - name: return_rate
+          - name: avg_delivery_days
+          - name: sla_breach_count
+          - name: cancellation_count
+          - name: cancellation_rate
+          - name: customer_rating_avg
+          - name: dispute_count
+          - name: _loaded_at

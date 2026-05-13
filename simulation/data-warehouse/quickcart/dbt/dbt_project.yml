@@ -1,0 +1,53 @@
+name: quickcart_dw
+version: "1.0.0"
+config-version: 2
+
+profile: quickcart
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  quickcart_dw:
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ["staging"]
+    intermediate:
+      +materialized: ephemeral
+      +tags: ["intermediate"]
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["mart"]
+      seller:
+        +materialized: table
+      orders:
+        +materialized: table
+      users:
+        +materialized: table
+      category:
+        +materialized: table
+      fulfillment:
+        +materialized: table
+      campaigns:
+        +materialized: table
+      search:
+        +materialized: table
+      experiments:
+        +materialized: table
+
+vars:
+  # Adjust lookback windows for incremental models
+  default_lookback_days: 30
+  bbd_year: 2024
+  # Seller tier thresholds — recalibrated Q3 2024
+  seller_tier_gold_gmv_threshold: 500000      # ₹5L+/month
+  seller_tier_silver_gmv_threshold: 100000    # ₹1L+/month
+  return_rate_penalty_threshold: 0.18         # 18% return rate triggers penalty score

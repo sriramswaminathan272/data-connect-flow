@@ -1,0 +1,4 @@
+# Generated CSV files — produced by npm run generate-warehouse
+# Not committed — regenerate locally or load from BigQuery snapshot
+*.csv
+outputs/
