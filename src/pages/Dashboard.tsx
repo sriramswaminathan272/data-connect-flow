@@ -9,6 +9,27 @@ const Dashboard = () => {
       <h1 className="text-2xl font-bold mb-8">Database Connection Hub</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Card className="border-blue-100 bg-blue-50/40">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>🗺️</span> Workflow Setup
+            </CardTitle>
+            <CardDescription>
+              Map your tools, projects, and collaborators in 5 minutes
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Connect Gmail + Calendar to auto-detect your stack, then tell us about your week in plain language.
+            </p>
+          </CardContent>
+          <CardFooter>
+            <Link to="/onboarding">
+              <Button className="bg-blue-600 hover:bg-blue-700">Set up workflow</Button>
+            </Link>
+          </CardFooter>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Connect to Database</CardTitle>

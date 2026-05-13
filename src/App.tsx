@@ -12,6 +12,7 @@ import AppLayout from "./components/AppLayout";
 import HypothesisTesting from "./pages/HypothesisTesting";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import MachineLearning from "./pages/MachineLearning";
+import WorkflowOnboarding from "./pages/WorkflowOnboarding";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +48,7 @@ const App = () => (
               <MachineLearning />
             </AppLayout>
           } />
+          <Route path="/onboarding" element={<WorkflowOnboarding />} />
           <Route path="/trainer" element={<TrainerDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
