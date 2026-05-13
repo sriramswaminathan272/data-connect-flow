@@ -1,10 +1,10 @@
-// ─── Ground truth (what DataFactory generates) ───────────────────────────────
+// ─── Ground truth ─────────────────────────────────────────────────────────────
 
 export interface Collaborator {
   name: string;
   role: string;
   relationship: "manager" | "direct-report" | "peer" | "cross-functional" | "external";
-  commsChannel: string; // "Slack DMs", "email", "WhatsApp", "standup"
+  commsChannel: string;
 }
 
 export interface Project {
@@ -12,14 +12,14 @@ export interface Project {
   codename?: string;
   status: "active" | "winding-down" | "blocked" | "planning";
   description: string;
-  tools: string[]; // tools specifically used for this project
+  tools: string[];
   keyPeople: string[];
 }
 
 export interface EmailPattern {
   subject: string;
   sender: string;
-  tool?: string; // tool this notification reveals
+  tool?: string;
 }
 
 export interface CalendarPattern {
@@ -27,7 +27,7 @@ export interface CalendarPattern {
   recurrence: string;
   organizer: string;
   attendees: string[];
-  videoLink?: string; // "zoom.us", "meet.google.com", etc.
+  videoLink?: string;
 }
 
 export interface PersonaProfile {
@@ -36,121 +36,152 @@ export interface PersonaProfile {
   company: string;
   tenure: string;
   reportsTo: string;
-  toolStack: string[]; // ground truth — every tool they actually use
-  primaryCommsTools: string[]; // where most work happens
-  invisibleComms: string[]; // WhatsApp, phone, etc. — tools we can't see
+  toolStack: string[];
+  primaryCommsTools: string[];
+  invisibleComms: string[];
+  marketingTools: string[]; // GA, Ads, AppsFlyer etc — signals the marketing OAuth path
   projects: Project[];
   collaborators: Collaborator[];
   emailPatterns: EmailPattern[];
   calendarPatterns: CalendarPattern[];
-  weekNarrativeSeed: string; // the "real" week — what the persona agent draws from
+  weekNarrativeSeed: string;
 }
+
+export type PersonaRole = "pm" | "analyst" | "marketing";
 
 export interface CompanyProfile {
   id: string;
+  companyKey: string;           // groups profiles from the same company
+  personaRole: PersonaRole;     // which role this profile represents
   name: string;
   industry: string;
-  stage: string; // "Series B", "Enterprise", "Seed", etc.
+  stage: string;
   size: string;
   city: string;
-  archetype: string; // "B2C fintech", "B2B SaaS", "early-stage startup", "enterprise"
+  archetype: string;
   persona: PersonaProfile;
 }
 
-// ─── Onboarding run (what PersonaRunner produces) ────────────────────────────
+// ─── Onboarding run ───────────────────────────────────────────────────────────
 
 export type OnboardingStep =
   | "welcome"
   | "connect"
+  | "mining"
   | "tools"
+  | "marketing-connect"   // extra GA/Ads OAuth shown when marketing signals detected
   | "narration"
+  | "extracting"
   | "done";
 
 export interface StepOutcome {
   step: OnboardingStep;
-  decision: string; // what the persona decided/did
-  hesitations: string[]; // concerns or uncertainties the persona had
-  input?: string; // for narration step: what they typed
-  toolsSelected?: string[]; // for tools step: what they confirmed
-  toolsAdded?: string[]; // for tools step: what they manually added
-  toolsRemoved?: string[]; // for tools step: what they unchecked
+  decision: string;
+  hesitations: string[];
+  input?: string;             // narration text
+  toolsSelected?: string[];
+  toolsAdded?: string[];
+  toolsRemoved?: string[];
+  tookMarketingOAuth?: boolean;
   skipped: boolean;
 }
 
 export interface SimulatedDiscovery {
-  detectedTools: string[]; // what the "mining" step surfaced
-  falsePositives: string[]; // detected but persona doesn't use
-  missedTools: string[]; // persona uses but not detected
+  detectedTools: string[];
+  falsePositives: string[];
+  missedTools: string[];
+  marketingSignalsDetected: boolean;
+}
+
+export interface ExtractedContext {
+  projects: Array<{ name: string; status: string; signal: string }>;
+  collaborators: Array<{ name: string; context: string }>;
+  blockers: string[];
+  toolsMentioned: string[];
+  whatsappMentioned: boolean;
 }
 
 export interface OnboardingRun {
   companyId: string;
+  companyKey: string;
+  personaRole: PersonaRole;
   personaName: string;
   steps: StepOutcome[];
   discovery: SimulatedDiscovery;
   completedFlow: boolean;
-  dropOffStep?: OnboardingStep;
   finalNarration: string;
   finalConfirmedTools: string[];
+  extractedContext: ExtractedContext | null;
 }
 
-// ─── Audit result (what AuditorAgent produces) ───────────────────────────────
+// ─── Audit ────────────────────────────────────────────────────────────────────
 
 export interface ToolDetectionScore {
-  precision: number; // detected tools that are real / all detected
-  recall: number; // real tools detected / all real tools
+  precision: number;
+  recall: number;
   f1: number;
   falsePositives: string[];
   falseNegatives: string[];
 }
 
 export interface NarrationScore {
-  projectsRevealed: string[]; // projects the persona mentioned
-  projectsMissed: string[]; // projects they didn't mention
+  projectsRevealed: string[];
+  projectsMissed: string[];
   peopleRevealed: string[];
-  toolsRevealedByNarration: string[]; // tools mentioned in narration (not detected by mining)
+  toolsRevealedByNarration: string[];
   blockersSurfaced: string[];
-  richness: "high" | "medium" | "low"; // qualitative assessment
+  richness: "high" | "medium" | "low";
+  richnessReason: string;
 }
 
 export interface AuditResult {
   companyId: string;
+  companyKey: string;
+  personaRole: PersonaRole;
   personaName: string;
   toolDetection: ToolDetectionScore;
   narration: NarrationScore;
-  overallDiscoveryScore: number; // 0-100
-  criticalGaps: string[]; // most important things that were missed
+  overallDiscoveryScore: number;
+  criticalGaps: string[];
   whatWorkedWell: string[];
 }
 
-// ─── Observer report (what ObserverAgent produces) ───────────────────────────
+// ─── Observer ─────────────────────────────────────────────────────────────────
 
 export interface FrictionPoint {
   step: OnboardingStep;
   issue: string;
-  frequency: string; // "seen in 3/4 runs", "seen in 1/4 runs"
+  frequency: string;
   severity: "high" | "medium" | "low";
   suggestedFix: string;
 }
 
-export interface PersonaInsight {
-  archetype: string;
-  specificIssue: string;
+export interface RoleInsight {
+  role: PersonaRole;
+  pattern: string;
+  recommendation: string;
+}
+
+export interface CompanyInsight {
+  companyKey: string;
+  companyName: string;
+  crossRolePattern: string;
   recommendation: string;
 }
 
 export interface ObserverReport {
   summary: string;
-  overallHealthScore: number; // 0-100 across all runs
+  overallHealthScore: number;
   frictionPoints: FrictionPoint[];
-  personaInsights: PersonaInsight[];
-  topRecommendations: string[]; // priority-ranked, top 5
+  roleInsights: RoleInsight[];
+  companyInsights: CompanyInsight[];
+  topRecommendations: string[];
   stepsThatWorked: string[];
   stepsToRethink: string[];
   unexpectedFindings: string[];
 }
 
-// ─── Full simulation result ───────────────────────────────────────────────────
+// ─── Full result ──────────────────────────────────────────────────────────────
 
 export interface SimulationResult {
   runId: string;

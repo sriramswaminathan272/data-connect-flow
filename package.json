@@ -8,7 +8,9 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "simulate": "tsx simulation/run.ts",
+    "simulate:dev": "npm run simulate && npm run dev"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.2",

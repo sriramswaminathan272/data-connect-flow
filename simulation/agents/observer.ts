@@ -3,6 +3,13 @@ import type { AuditResult, CompanyProfile, ObserverReport, OnboardingRun } from 
 
 const client = new Anthropic();
 
+function safeParseJSON<T>(text: string, fallback: T): T {
+  const match = text.match(/\{[\s\S]*\}/);
+  if (!match) return fallback;
+  try { return JSON.parse(match[0]) as T; }
+  catch { return fallback; }
+}
+
 export async function runObserverAgent(
   companies: CompanyProfile[],
   runs: OnboardingRun[],
@@ -10,96 +17,132 @@ export async function runObserverAgent(
 ): Promise<ObserverReport> {
   console.log("  👁️   Observer: synthesising across all runs...");
 
-  const runSummaries = runs.map((run, i) => {
+  const roleGroups = {
+    pm: audits.filter((a) => a.personaRole === "pm"),
+    analyst: audits.filter((a) => a.personaRole === "analyst"),
+    marketing: audits.filter((a) => a.personaRole === "marketing"),
+  };
+
+  const companyGroups = [...new Set(runs.map((r) => r.companyKey))].map((key) => ({
+    key,
+    name: companies.find((c) => c.companyKey === key)?.name ?? key,
+    runs: runs.filter((r) => r.companyKey === key),
+    audits: audits.filter((a) => a.companyKey === key),
+  }));
+
+  const runSummaries = runs.map((run) => {
     const company = companies.find((c) => c.id === run.companyId)!;
-    const audit = audits[i];
+    const audit = audits.find((a) => a.companyId === run.companyId)!;
+    const stepSummary = run.steps
+      .map((s) => `  [${s.step}] ${s.decision}${s.hesitations.length > 0 ? ` | hesitations: ${s.hesitations.join("; ")}` : ""}${s.skipped ? " [SKIPPED]" : ""}`)
+      .join("\n");
+
     return `
---- Run ${i + 1}: ${run.personaName} @ ${company.name} (${company.archetype}) ---
-Tool detection: precision=${Math.round(audit.toolDetection.precision * 100)}% recall=${Math.round(audit.toolDetection.recall * 100)}%
+=== ${run.personaName} | ${company.personaRole} @ ${company.name} (${company.archetype}) ===
+Tool detection: recall=${Math.round(audit.toolDetection.recall * 100)}% precision=${Math.round(audit.toolDetection.precision * 100)}% F1=${Math.round(audit.toolDetection.f1 * 100)}%
 False positives: ${audit.toolDetection.falsePositives.join(", ") || "none"}
-Missed tools: ${audit.toolDetection.falseNegatives.join(", ") || "none"}
-Narration richness: ${audit.narration.richness}
-Overall score: ${audit.overallDiscoveryScore}
+Missed: ${audit.toolDetection.falseNegatives.join(", ") || "none"}
+Narration richness: ${audit.narration.richness} — ${audit.narration.richnessReason ?? ""}
+Overall score: ${audit.overallDiscoveryScore}/100
+Marketing OAuth taken: ${run.steps.find((s) => s.step === "marketing-connect")?.tookMarketingOAuth ?? "N/A (not shown)"}
 
-Step-by-step behaviour:
-${run.steps
-  .map(
-    (s) => `  [${s.step}] Decision: ${s.decision}
-   Hesitations: ${s.hesitations.length > 0 ? s.hesitations.join("; ") : "none"}
-   Skipped: ${s.skipped}`
-  )
-  .join("\n")}
+Steps:
+${stepSummary}
 
-Narration given:
-"${run.finalNarration || "(skipped)"}"
+Narration: "${run.finalNarration || "(skipped)"}"
 
-Critical gaps: ${audit.criticalGaps.join("; ") || "none"}
-What worked: ${audit.whatWorkedWell.join("; ") || "nothing noted"}
-`;
-  });
+Context extracted: ${JSON.stringify(run.extractedContext, null, 2)}
 
-  const onboardingFlowDescription = `
-The onboarding flow being tested has these steps:
-1. WELCOME — brief value prop, "get started" button
-2. CONNECT — Google OAuth (Gmail + Calendar), with explicit "what we read / won't do" breakdown
-3. MINING — animated scan showing progress (reads email patterns, calendar patterns, tool signals)
-4. TOOLS — shows auto-detected tools as toggleable cards; user can uncheck wrong ones and add missing
-5. NARRATION — free-text "tell me about your week" with 4 guided prompts
-6. DONE — summary of confirmed tools + context captured
-`;
+Critical gaps: ${audit.criticalGaps.join(" | ") || "none"}
+What worked: ${audit.whatWorkedWell.join(" | ") || "nothing noted"}`;
+  }).join("\n");
 
-  const prompt = `You are a senior UX researcher and product designer who has just watched 4 users go through a new workflow onboarding flow.
+  const roleScores = {
+    pm: roleGroups.pm.map((a) => a.overallDiscoveryScore),
+    analyst: roleGroups.analyst.map((a) => a.overallDiscoveryScore),
+    marketing: roleGroups.marketing.map((a) => a.overallDiscoveryScore),
+  };
+  const avg = (arr: number[]) => arr.length > 0 ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
 
-${onboardingFlowDescription}
+  const prompt = `You are a senior UX researcher and product designer. You have just observed 15 users (5 companies × 3 roles: PM, analyst, marketing) go through a workflow discovery onboarding flow.
 
-Here are the 4 session transcripts with audit results:
+The onboarding flow:
+1. WELCOME — value prop, get started
+2. CONNECT — Google OAuth (Gmail + Calendar), explicit data usage breakdown
+3. MINING — animated scan, detects tools from email/calendar patterns
+4. TOOLS — show detected tools as toggleable cards, user confirms/adds/removes
+5. MARKETING-CONNECT — offered only when marketing signals detected; separate Google Analytics/Ads OAuth
+6. NARRATION — "tell me about your week" free-text with 4 guided prompts
+7. DONE — shows extracted projects, collaborators, and blockers
 
-${runSummaries.join("\n")}
+Role averages: PM=${avg(roleScores.pm)}/100, Analyst=${avg(roleScores.analyst)}/100, Marketing=${avg(roleScores.marketing)}/100
 
-Based on what you observed, write a thorough UX and product critique. Return JSON:
+Session transcripts:
+${runSummaries}
+
+Write a thorough UX and product critique. Return JSON only:
 {
-  "summary": "2-3 sentence executive summary of the overall health of this onboarding flow",
+  "summary": "2-3 sentence executive summary of overall flow health, naming specific patterns",
   "overallHealthScore": 0-100,
   "frictionPoints": [
     {
-      "step": "welcome" | "connect" | "tools" | "narration" | "done",
-      "issue": "what the friction is",
-      "frequency": "seen in X/4 runs",
-      "severity": "high" | "medium" | "low",
-      "suggestedFix": "specific actionable fix"
+      "step": "welcome"|"connect"|"mining"|"tools"|"marketing-connect"|"narration"|"done",
+      "issue": "specific friction observed",
+      "frequency": "seen in X/15 runs or X/5 PM runs etc",
+      "severity": "high"|"medium"|"low",
+      "suggestedFix": "specific, actionable fix"
     }
   ],
-  "personaInsights": [
+  "roleInsights": [
     {
-      "archetype": "which user type",
-      "specificIssue": "issue specific to this archetype",
-      "recommendation": "what to do for them"
+      "role": "pm"|"analyst"|"marketing",
+      "pattern": "consistent behaviour pattern observed across this role",
+      "recommendation": "specific product recommendation for this role"
+    }
+  ],
+  "companyInsights": [
+    {
+      "companyKey": "feastrunner"|"bitvault"|"mediconnect"|"quickcart"|"swiftship",
+      "companyName": "company display name",
+      "crossRolePattern": "pattern observed consistently across all 3 roles at this company",
+      "recommendation": "what to do differently for this company archetype"
     }
   ],
   "topRecommendations": [
-    "5 priority-ranked actionable recommendations — each a complete sentence"
+    "5 priority-ranked recommendations — each a complete, specific, actionable sentence"
   ],
-  "stepsThatWorked": ["steps that performed well"],
-  "stepsToRethink": ["steps that need redesign"],
-  "unexpectedFindings": ["things you observed that you didn't expect — important surprises"]
+  "stepsThatWorked": ["steps that performed well with brief evidence"],
+  "stepsToRethink": ["steps that need redesign with brief reason"],
+  "unexpectedFindings": ["3-5 surprising observations grounded in specific run data"]
 }
 
-Be specific. Reference actual personas and data from the runs. Don't give generic UX advice.
+Be concrete. Reference personas by name and specific session data. No generic UX advice.
 Return ONLY the JSON.`;
 
-  const response = await client.messages.create({
-    model: "claude-opus-4-7",
-    max_tokens: 2500,
-    messages: [{ role: "user", content: prompt }],
-  });
+  const fallbackReport: ObserverReport = {
+    summary: "Observer synthesis unavailable — check logs for API errors.",
+    overallHealthScore: 0,
+    frictionPoints: [],
+    roleInsights: [],
+    companyInsights: [],
+    topRecommendations: [],
+    stepsThatWorked: [],
+    stepsToRethink: [],
+    unexpectedFindings: [],
+  };
 
-  const text = response.content[0].type === "text" ? response.content[0].text : "{}";
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error("Observer: no JSON in response");
+  try {
+    const response = await client.messages.create({
+      model: "claude-opus-4-7",
+      max_tokens: 3000,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = response.content[0].type === "text" ? response.content[0].text : "";
+    const report = safeParseJSON(text, fallbackReport);
+    console.log(`  ✓   Observer: health score ${report.overallHealthScore}/100`);
+    return report;
+  } catch (err) {
+    console.error("  ✗   Observer failed:", err);
+    return fallbackReport;
   }
-
-  const report = JSON.parse(jsonMatch[0]) as ObserverReport;
-  console.log(`  ✓   Observer: health score ${report.overallHealthScore}/100`);
-  return report;
 }
