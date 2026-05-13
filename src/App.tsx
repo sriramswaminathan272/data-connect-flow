@@ -13,6 +13,7 @@ import HypothesisTesting from "./pages/HypothesisTesting";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import MachineLearning from "./pages/MachineLearning";
 import WorkflowOnboarding from "./pages/WorkflowOnboarding";
+import SimulationDashboard from "./pages/SimulationDashboard";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,11 @@ const App = () => (
             </AppLayout>
           } />
           <Route path="/onboarding" element={<WorkflowOnboarding />} />
+          <Route path="/simulation" element={
+            <AppLayout>
+              <SimulationDashboard />
+            </AppLayout>
+          } />
           <Route path="/trainer" element={<TrainerDashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
