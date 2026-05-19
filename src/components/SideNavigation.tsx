@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -13,7 +12,17 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ChevronDown, ChevronRight, Database, FlaskConical, BarChart2, BrainCircuit } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  Database,
+  FlaskConical,
+  BarChart2,
+  BrainCircuit,
+  Sparkles,
+  CalendarDays,
+  LayoutDashboard,
+} from "lucide-react";
 
 interface NavGroupProps {
   title: string;
@@ -23,10 +32,10 @@ interface NavGroupProps {
 
 const NavGroup: React.FC<NavGroupProps> = ({ title, children, defaultOpen = false }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  
+
   return (
     <div className="mb-1">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center w-full px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100 rounded-md"
       >
@@ -49,20 +58,20 @@ interface NavLinkProps {
 const NavLink: React.FC<NavLinkProps> = ({ to, icon, children }) => {
   const location = useLocation();
   const isActive = location.pathname === to;
-  
+
   return (
-    <Link 
-      to={to} 
+    <Link
+      to={to}
       className={cn(
-        "flex items-center px-3 py-2 text-sm rounded-md", 
-        isActive 
-          ? "bg-blue-100 text-blue-700 font-medium" 
+        "flex items-center px-3 py-2 text-sm rounded-md",
+        isActive
+          ? "bg-indigo-100 text-indigo-700 font-medium"
           : "text-slate-700 hover:bg-slate-100"
       )}
     >
-      {React.cloneElement(icon as React.ReactElement, { 
+      {React.cloneElement(icon as React.ReactElement, {
         size: 16,
-        className: cn("mr-2", isActive ? "text-blue-700" : "text-slate-500")
+        className: cn("mr-2", isActive ? "text-indigo-600" : "text-slate-500")
       })}
       <span>{children}</span>
     </Link>
@@ -75,14 +84,40 @@ const SideNavigation = () => {
       <Sidebar className="bg-slate-50 border-r border-slate-200">
         <SidebarContent>
           <div className="px-3 py-4">
-            <h2 className="text-xl font-bold mb-6 px-3">Data Analysis Hub</h2>
-            
+            <div className="flex items-center gap-2 px-3 mb-6">
+              <div className="w-6 h-6 bg-indigo-600 rounded flex items-center justify-center">
+                <Sparkles size={13} className="text-white" />
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">Artisan</h2>
+            </div>
+
             <SidebarGroup>
-              <SidebarGroupLabel>Main Navigation</SidebarGroupLabel>
+              <SidebarGroupLabel>Artisan</SidebarGroupLabel>
               <SidebarMenu>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/connect" icon={<Database />}>Connect to Data Hub</NavLink>
+                    <NavLink to="/artisan" icon={<CalendarDays />}>Daily Surface</NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/onboarding" icon={<Sparkles />}>Onboarding</NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
+
+            <SidebarGroup className="mt-4">
+              <SidebarGroupLabel>Data Tools</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/dashboard" icon={<LayoutDashboard />}>Dashboard</NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <NavLink to="/connect" icon={<Database />}>Connect to Data</NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -97,7 +132,7 @@ const SideNavigation = () => {
                 </SidebarMenuItem>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild>
-                    <NavLink to="/ml" icon={<BrainCircuit />}>Machine Learning Toolbox</NavLink>
+                    <NavLink to="/ml" icon={<BrainCircuit />}>Machine Learning</NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
