@@ -23,7 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Generated video output
+# Generated video output and working files
 *.mp4
 *.mov
 *.avi
+frames/
