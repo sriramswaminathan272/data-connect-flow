@@ -145,6 +145,23 @@ function hasTool(toolNames: string[], ...names: string[]): boolean {
   return names.some((n) => lower.includes(n.toLowerCase()));
 }
 
+function isGenieWish(interviewAnswers: InterviewAnswer[]): boolean {
+  const wish = interviewAnswers.find((a) => a.questionId === 'wish')?.verbatim?.toLowerCase() || '';
+  return (
+    wish.includes('onboarding') ||
+    wish.includes('this interview') ||
+    wish.includes('this form') ||
+    wish.includes('this questionnaire') ||
+    wish.includes('these questions') ||
+    wish.includes('filling out') ||
+    wish.includes('explain myself') ||
+    wish.includes('setup process') ||
+    wish.includes('answering questions') ||
+    (wish.includes('this') && wish.includes('interview'))
+  );
+}
+}
+
 function firstTool(toolNames: string[], ...candidates: string[]): string | null {
   return candidates.find((c) => toolNames.map((t) => t.toLowerCase()).includes(c.toLowerCase())) ?? null;
 }
@@ -156,6 +173,22 @@ export function generateHeroCard(
   if (!persona) return null;
 
   const toolNames = discoveredTools.filter((t) => t.confidence !== 'low').map((t) => t.name);
+
+  if (isGenieWish(interviewAnswers)) {
+    const totalTools = toolNames.length;
+    return {
+      title: 'You said you hate setup forms. We agree.',
+      description: `So we skipped the rest. I scanned your ${totalTools > 0 ? totalTools + ' connected tools' : 'connected integrations'} and learned everything I needed without asking. You'll never fill out an onboarding form again — Artisan will update its model from what you actually do, not what you say you do.`,
+      ctaLabel: 'See what I already know',
+      stats: [
+        { value: `${totalTools > 0 ? totalTools : '—'}`, label: 'tools scanned' },
+        { value: '0', label: 'more questions' },
+        { value: 'never again', label: 'onboarding forms' },
+      ],
+      trustSource: 'Your connected integrations · no manual input required',
+    };
+  }
+
   const projectName = activeProjects[0]?.name || extractProjectName(interviewAnswers) || 'your current project';
   const pmTool = firstTool(toolNames, 'Linear', 'Jira', 'Asana') || 'your project board';
   const analyticsTool = firstTool(toolNames, 'Mixpanel', 'Amplitude', 'Google Analytics') || 'your analytics tool';
@@ -232,7 +265,11 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
 
   const toolNames = discoveredTools.filter((t) => t.confidence !== 'low').map((t) => t.name);
   const projectName = activeProjects[0]?.name || extractProjectName(interviewAnswers) || 'your current project';
-  const painPoint = interviewAnswers.find((a) => a.questionId === 'painPoint')?.verbatim?.slice(0, 80) || '';
+  const painPoint = (
+    interviewAnswers.find((a) => a.questionId === 'wish')?.verbatim ||
+    interviewAnswers.find((a) => a.questionId === 'painPoint')?.verbatim ||
+    ''
+  ).slice(0, 80);
   const pmTool = firstTool(toolNames, 'Linear', 'Jira', 'Asana') || 'your project board';
   const analyticsTool = firstTool(toolNames, 'Mixpanel', 'Amplitude', 'Google Analytics') || 'your analytics tool';
   const designTool = firstTool(toolNames, 'Figma', 'Sketch', 'Framer') || 'Figma';
