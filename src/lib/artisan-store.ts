@@ -160,7 +160,6 @@ function isGenieWish(interviewAnswers: InterviewAnswer[]): boolean {
     (wish.includes('this') && wish.includes('interview'))
   );
 }
-}
 
 function firstTool(toolNames: string[], ...candidates: string[]): string | null {
   return candidates.find((c) => toolNames.map((t) => t.toLowerCase()).includes(c.toLowerCase())) ?? null;
