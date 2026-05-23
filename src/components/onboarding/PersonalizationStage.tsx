@@ -13,8 +13,9 @@ import {
   Search,
   Play,
   CheckCircle2,
+  ArrowRight,
 } from 'lucide-react';
-import { CapabilityCard, Persona, UserContext } from '@/types/artisan';
+import { CapabilityCard, HeroCard, Persona, UserContext } from '@/types/artisan';
 import { PERSONA_LABELS } from '@/lib/artisan-store';
 import { cn } from '@/lib/utils';
 
@@ -43,30 +44,42 @@ const PERSONA_OPTIONS: Array<{ value: Persona; label: string }> = [
 
 interface PersonalizationStageProps {
   context: Pick<UserContext, 'persona' | 'name' | 'capabilityCards' | 'discoveredTools' | 'interviewAnswers'>;
+  heroCard: HeroCard | null;
   onPersonaCorrect: (persona: Persona) => void;
   onComplete: () => void;
 }
 
-export default function PersonalizationStage({ context, onPersonaCorrect, onComplete }: PersonalizationStageProps) {
+export default function PersonalizationStage({
+  context,
+  heroCard,
+  onPersonaCorrect,
+  onComplete,
+}: PersonalizationStageProps) {
   const [showPersonaCorrector, setShowPersonaCorrector] = useState(false);
-  const { persona, capabilityCards } = context;
+  const { persona, capabilityCards, discoveredTools, connectedIntegrations } = context as typeof context & {
+    connectedIntegrations?: Array<{ name: string }>;
+  };
 
   if (!persona) return null;
 
   const PersonaIcon = PERSONA_ICONS[persona];
   const personaLabel = PERSONA_LABELS[persona];
 
-  const toolCount = context.discoveredTools.filter((t) => t.confidence !== 'low').length;
+  const highConfidenceTools = discoveredTools.filter((t) => t.confidence === 'high');
+  const topTools = highConfidenceTools.slice(0, 3).map((t) => t.name);
+  const toolCount = discoveredTools.filter((t) => t.confidence !== 'low').length;
 
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">
-          Here's what Artisan can do for you.
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-1.5">
+          Here's what I see. Here's what I can do.
         </h2>
         <p className="text-sm text-slate-500 mb-4">
-          Based on what you told us and {toolCount > 0 ? `${toolCount} tools we found across your sources` : 'what we found across your sources'}.
+          {toolCount > 0
+            ? `Found ${topTools.join(', ')}${toolCount > 3 ? ` + ${toolCount - 3} more` : ''} across your connected sources.`
+            : 'Based on what you told us across your connected sources.'}
         </p>
 
         {/* Inferred persona */}
@@ -103,17 +116,27 @@ export default function PersonalizationStage({ context, onPersonaCorrect, onComp
         )}
       </div>
 
-      {/* Capability cards */}
-      <div className="grid gap-4 sm:grid-cols-2 mb-8">
-        {capabilityCards.map((card) => (
-          <CapabilityCardComponent key={card.id} card={card} />
-        ))}
-      </div>
+      {/* Hero card */}
+      {heroCard && <HeroCardComponent card={heroCard} />}
+
+      {/* Supporting capability cards */}
+      {capabilityCards.length > 0 && (
+        <>
+          <p className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3 mt-6">
+            More capabilities
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2 mb-8">
+            {capabilityCards.map((card) => (
+              <SupportingCardComponent key={card.id} card={card} />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* Footer */}
       <div className="border-t border-slate-200 pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <p className="text-xs text-slate-400 max-w-sm">
-          Every card above references something from your tools or your answers — nothing is generic. Cards update as you use Artisan.
+          Every card references something from your tools or your answers. Nothing is generic. Cards update as you use Artisan.
         </p>
         <Button
           onClick={onComplete}
@@ -128,13 +151,53 @@ export default function PersonalizationStage({ context, onPersonaCorrect, onComp
   );
 }
 
-function CapabilityCardComponent({ card }: { card: CapabilityCard }) {
+// ─── Hero Card ─────────────────────────────────────────────────────────────────
+
+function HeroCardComponent({ card }: { card: HeroCard }) {
+  return (
+    <div className="rounded-xl border border-indigo-900 bg-gradient-to-br from-indigo-950 to-indigo-900 p-6 text-white">
+      {/* Stats row */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        {card.stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="flex flex-col px-3 py-2 rounded-lg bg-white/10 border border-white/10 min-w-[80px]"
+          >
+            <span className="text-base font-bold leading-tight">{stat.value}</span>
+            <span className="text-xs text-indigo-200 leading-tight mt-0.5">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Title */}
+      <h3 className="text-lg font-semibold leading-snug mb-2">{card.title}</h3>
+
+      {/* Description */}
+      <p className="text-sm text-indigo-100 leading-relaxed mb-5">{card.description}</p>
+
+      {/* CTA + trust */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <button className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-indigo-700 text-sm font-semibold hover:bg-indigo-50 transition-colors">
+          {card.ctaLabel}
+          <ArrowRight className="w-4 h-4" />
+        </button>
+        <p className="text-xs text-indigo-300 leading-tight max-w-[220px]">
+          Source: {card.trustSource}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Supporting Card ───────────────────────────────────────────────────────────
+
+function SupportingCardComponent({ card }: { card: CapabilityCard }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="p-5 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm transition-all group">
-      {/* Tool tags */}
-      {card.toolsReferenced.length > 0 && (
+    <div className="p-4 rounded-xl border border-slate-200 bg-white hover:border-indigo-200 hover:shadow-sm transition-all group">
+      {/* Tool + project tags */}
+      {(card.toolsReferenced.length > 0 || card.projectReferenced) && (
         <div className="flex flex-wrap gap-1 mb-3">
           {card.toolsReferenced.slice(0, 2).map((tool) => (
             <span key={tool} className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-500">
@@ -151,14 +214,14 @@ function CapabilityCardComponent({ card }: { card: CapabilityCard }) {
 
       <h3 className="font-semibold text-slate-900 text-sm mb-2 leading-snug">{card.title}</h3>
 
-      <p className={cn('text-xs text-slate-500 leading-relaxed mb-4', !expanded && 'line-clamp-3')}>
+      <p className={cn('text-xs text-slate-500 leading-relaxed mb-3', !expanded && 'line-clamp-3')}>
         {card.description}
       </p>
 
       {card.description.length > 150 && (
         <button
           onClick={() => setExpanded(!expanded)}
-          className="text-xs text-slate-400 hover:text-slate-600 mb-3 -mt-2"
+          className="text-xs text-slate-400 hover:text-slate-600 mb-2 -mt-1"
         >
           {expanded ? 'Show less' : 'Read more'}
         </button>

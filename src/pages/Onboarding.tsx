@@ -10,8 +10,10 @@ import {
   saveContext,
   inferPersona,
   generateCapabilityCards,
+  generateHeroCard,
   INTEGRATION_SCAN_RESULTS,
 } from '@/lib/artisan-store';
+import { HeroCard } from '@/types/artisan';
 
 const STAGE_LABELS: Record<OnboardingStage, string> = {
   connect: 'Connect',
@@ -30,6 +32,8 @@ export default function Onboarding() {
   const [discoveredTools, setDiscoveredTools] = useState<ReturnType<typeof buildDiscoveredTools>>([]);
   const [persona, setPersona] = useState<Persona | null>(null);
   const [capabilityCards, setCapabilityCards] = useState<ReturnType<typeof generateCapabilityCards>>([]);
+  const [heroCard, setHeroCard] = useState<HeroCard | null>(null);
+  const [savedInterviewAnswers, setSavedInterviewAnswers] = useState<InterviewAnswer[]>([]);
 
   function buildDiscoveredTools(integrations: typeof connectedIntegrations) {
     const seen = new Set<string>();
@@ -59,15 +63,14 @@ export default function Onboarding() {
     const allToolNames = [...new Set([...toolNames, ...(answersWithChips?.selectedChips || [])])];
 
     const inferred = inferPersona(answers, allToolNames);
-    const cards = generateCapabilityCards({
-      persona: inferred,
-      discoveredTools,
-      interviewAnswers: answers,
-      activeProjects: [],
-    });
+    const ctx = { persona: inferred, discoveredTools, interviewAnswers: answers, activeProjects: [] };
+    const cards = generateCapabilityCards(ctx);
+    const hero = generateHeroCard(ctx);
 
     setPersona(inferred);
     setCapabilityCards(cards);
+    setHeroCard(hero);
+    setSavedInterviewAnswers(answers);
     saveContext({
       interviewAnswers: answers,
       persona: inferred,
@@ -79,14 +82,12 @@ export default function Onboarding() {
   };
 
   const handlePersonaCorrect = (corrected: Persona) => {
-    const newCards = generateCapabilityCards({
-      persona: corrected,
-      discoveredTools,
-      interviewAnswers: [],
-      activeProjects: [],
-    });
+    const ctx = { persona: corrected, discoveredTools, interviewAnswers: savedInterviewAnswers, activeProjects: [] };
+    const newCards = generateCapabilityCards(ctx);
+    const newHero = generateHeroCard(ctx);
     setPersona(corrected);
     setCapabilityCards(newCards);
+    setHeroCard(newHero);
     saveContext({ persona: corrected, personaConfidence: 'corrected', capabilityCards: newCards });
   };
 
@@ -154,8 +155,9 @@ export default function Onboarding() {
                 name: '',
                 capabilityCards,
                 discoveredTools,
-                interviewAnswers: [],
+                interviewAnswers: savedInterviewAnswers,
               }}
+              heroCard={heroCard}
               onPersonaCorrect={handlePersonaCorrect}
               onComplete={handleOnboardingComplete}
             />

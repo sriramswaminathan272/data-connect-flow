@@ -35,6 +35,19 @@ export interface InterviewAnswer {
   selectedOption?: string;
 }
 
+export interface HeroStat {
+  value: string;
+  label: string;
+}
+
+export interface HeroCard {
+  title: string;
+  description: string;
+  ctaLabel: string;
+  stats: HeroStat[];
+  trustSource: string;
+}
+
 export interface CapabilityCard {
   id: string;
   title: string;

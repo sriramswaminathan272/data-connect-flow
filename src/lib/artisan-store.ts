@@ -5,6 +5,7 @@ import {
   InterviewAnswer,
   DiscoveredTool,
   CapabilityCard,
+  HeroCard,
   Task,
   DailyDelta,
 } from '../types/artisan';
@@ -148,6 +149,83 @@ function firstTool(toolNames: string[], ...candidates: string[]): string | null 
   return candidates.find((c) => toolNames.map((t) => t.toLowerCase()).includes(c.toLowerCase())) ?? null;
 }
 
+export function generateHeroCard(
+  ctx: Pick<UserContext, 'persona' | 'discoveredTools' | 'interviewAnswers' | 'activeProjects'>
+): HeroCard | null {
+  const { persona, discoveredTools, interviewAnswers, activeProjects } = ctx;
+  if (!persona) return null;
+
+  const toolNames = discoveredTools.filter((t) => t.confidence !== 'low').map((t) => t.name);
+  const projectName = activeProjects[0]?.name || extractProjectName(interviewAnswers) || 'your current project';
+  const pmTool = firstTool(toolNames, 'Linear', 'Jira', 'Asana') || 'your project board';
+  const analyticsTool = firstTool(toolNames, 'Mixpanel', 'Amplitude', 'Google Analytics') || 'your analytics tool';
+  const designTool = firstTool(toolNames, 'Figma', 'Sketch', 'Framer') || 'Figma';
+  const dataTool = firstTool(toolNames, 'dbt', 'BigQuery', 'Databricks', 'Looker', 'Redash') || 'your data warehouse';
+  const marketingTool = firstTool(toolNames, 'HubSpot', 'Mailchimp', 'Google Ads', 'Marketo') || 'your marketing stack';
+  const salesTool = firstTool(toolNames, 'Salesforce', 'HubSpot', 'Outreach', 'Apollo') || 'your CRM';
+  const totalTools = toolNames.length;
+
+  const cards: Record<Persona, HeroCard> = {
+    pm: {
+      title: 'Sprint ends in 3 days. 2 tickets haven\'t moved.',
+      description: `I found ${pmTool} in your tool signals while you answered our questions. There are 2 items that have been In Review since earlier this week — no comments, no assignee change. Before your standup tomorrow morning, I can give you the risk summary and talking points — no ${pmTool} tab needed.`,
+      ctaLabel: 'Check sprint health now',
+      stats: [
+        { value: '3 days', label: 'sprint ends' },
+        { value: '2 tickets', label: 'stuck in review' },
+        { value: `${totalTools} tools`, label: 'scanned for context' },
+      ],
+      trustSource: `${pmTool} · tool signals detected during onboarding`,
+    },
+    analyst: {
+      title: 'Your weekly metrics report takes 90 minutes. It shouldn\'t.',
+      description: `I found ${dataTool}${analyticsTool !== 'your analytics tool' ? ` and ${analyticsTool}` : ''} in your tool signals — that's the exact stack your recurring report runs on. Tell me the 3 metrics you track every week, and I'll set up automated pulls that post to Slack before anyone has to ask.`,
+      ctaLabel: 'Set up automated reporting',
+      stats: [
+        { value: '90 min', label: 'weekly report time' },
+        { value: `${totalTools} tools`, label: 'data stack found' },
+        { value: 'every week', label: 'same question arrives' },
+      ],
+      trustSource: `Gmail + Slack tool signals · ${totalTools} high-confidence matches`,
+    },
+    marketing: {
+      title: 'Two tools. Two conversion numbers. One of them is right.',
+      description: `I found ${marketingTool} and Google Analytics in your tool signals. The gap between them isn't a bug — it's attribution method. I can reconcile them right now and give you the number to use with confidence, with the explanation for your next stakeholder review.`,
+      ctaLabel: 'Reconcile my numbers',
+      stats: [
+        { value: '12%', label: `${marketingTool} (last-touch)` },
+        { value: '8.3%', label: 'Google Analytics' },
+        { value: '2 tools', label: 'attribution conflict' },
+      ],
+      trustSource: `Gmail tool signals · ${marketingTool} + Google Analytics detected`,
+    },
+    designer: {
+      title: 'Handoff is in 3 days. The spec isn\'t written yet.',
+      description: `You mentioned ${projectName} in your interview and I found ${designTool} in your tool signals. The gap between a finished ${designTool} frame and a buildable component spec is usually 4 hours of documentation. I can close that in 8 minutes — ask me to generate the spec for any frame and I'll produce the tokens, states, and behaviors ready for engineering.`,
+      ctaLabel: 'Generate component spec',
+      stats: [
+        { value: '3 days', label: 'to handoff' },
+        { value: '0 specs', label: 'sent to engineering' },
+        { value: '8 min', label: 'Artisan closure time' },
+      ],
+      trustSource: `Gmail (${designTool} detected) + your interview answer`,
+    },
+    sales: {
+      title: '7 of your deals haven\'t been touched in 21 days.',
+      description: `I found ${salesTool} in your tool signals. These deals are at risk of going cold before your next pipeline review — and the longer you wait, the harder the re-engagement. I\'ve pre-drafted sequences for each stale deal, matched to their stage and last known conversation context. Review them in 5 minutes, before Friday.`,
+      ctaLabel: 'Review 7 sequences',
+      stats: [
+        { value: '7 deals', label: 'no activity 21+ days' },
+        { value: '5 days', label: 'Acme proposal unopened' },
+        { value: 'before Friday', label: 'your pipeline review' },
+      ],
+      trustSource: `${salesTool} tool signals · activity patterns detected`,
+    },
+  };
+
+  return cards[persona] ?? null;
+}
+
 export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'discoveredTools' | 'interviewAnswers' | 'activeProjects'>): CapabilityCard[] {
   const { persona, discoveredTools, interviewAnswers, activeProjects } = ctx;
   if (!persona) return [];
@@ -166,8 +244,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
     pm: [
       {
         id: 'pm-sprint-health',
-        title: 'Sprint health, without the meeting',
-        description: `You have tasks in review and a deadline approaching. I can read your ${pmTool} board and give you a risk summary — which items are likely to slip and why, before anyone has to ask.`,
+        title: 'Sprint health, before your standup',
+        description: `${pmTool} has 2 tickets that haven't moved in 6+ days and a sprint closing Friday. Before your standup tomorrow, I can produce the risk summary and talking points — which items will slip, who owns the blocker, and what to say to stakeholders. No ${pmTool} tab needed.`,
         ctaLabel: 'Check sprint health',
         ctaType: 'check',
         persona: 'pm',
@@ -177,9 +255,9 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'pm-prd-writer',
-        title: 'PRD written in your voice',
-        description: `You're working on ${projectName}. I can draft a full PRD from our conversation — your words, structured for your team, ready for ${hasTool(toolNames, 'Confluence') ? 'Confluence' : 'wherever your team documents'}.`,
-        ctaLabel: 'Draft PRD',
+        title: 'PRD written in your voice, in 4 minutes',
+        description: `You're working on ${projectName}. Give me 2 minutes and I'll turn what you told me in the interview into a structured PRD draft — your words, your priorities, formatted for ${hasTool(toolNames, 'Confluence') ? 'Confluence' : hasTool(toolNames, 'Notion') ? 'Notion' : 'your team'}. You edit, you don't write from zero.`,
+        ctaLabel: 'Draft PRD now',
         ctaType: 'start',
         persona: 'pm',
         toolsReferenced: toolNames.filter((t) => ['Confluence', 'Notion', 'Linear'].includes(t)),
@@ -188,10 +266,10 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'pm-stakeholder-update',
-        title: 'Stakeholder update in 30 seconds',
+        title: 'Stakeholder update before the meeting',
         description: painPoint.includes('status') || painPoint.includes('update') || painPoint.includes('meet')
-          ? `You mentioned "${painPoint.slice(0, 60)}..." — I can turn your ${pmTool} comments and Slack threads into a 5-bullet stakeholder update in your voice.`
-          : `I can turn your ${pmTool} board and Slack threads into a crisp stakeholder update — your words, formatted for async reading.`,
+          ? `You mentioned "${painPoint.slice(0, 60)}..." — I can turn this week's ${pmTool} activity and Slack threads into a 5-bullet stakeholder update in your voice. Before the meeting, not during.`
+          : `I can compress your ${pmTool} board and Slack thread into a crisp 5-bullet update — your words, formatted for async reading, ready before the next stakeholder sync.`,
         ctaLabel: 'Generate update',
         ctaType: 'try',
         persona: 'pm',
@@ -200,8 +278,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'pm-analytics-summary',
-        title: `${analyticsTool} insights, on demand`,
-        description: `You track product metrics in ${analyticsTool}. Ask me anything — "What's retention doing since the last release?" — and I'll surface the answer without you opening another tab.`,
+        title: `${analyticsTool} answers, without the tab`,
+        description: `"What's retention doing since the last release?" — I can answer that from ${analyticsTool} in 30 seconds, inline. Ask any product metric question and I'll surface the answer without breaking your flow.`,
         ctaLabel: `Try: "What's retention doing?"`,
         ctaType: 'try',
         persona: 'pm',
@@ -212,8 +290,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
     analyst: [
       {
         id: 'analyst-query-runner',
-        title: 'Run queries without leaving this window',
-        description: `You use ${dataTool}. With the MCP integration connected, ask me to run any query against your marts and I'll show results inline — no tab-switching to ${firstTool(toolNames, 'Redash', 'Looker', 'Metabase') || 'your BI tool'}.`,
+        title: 'Answer the question before it reaches your inbox',
+        description: `You use ${dataTool}. Connect it here and I'll run queries inline — results, charts, and plain-English summaries — so the next time someone asks "why did conversion drop?", you have the answer before the Slack DM arrives.`,
         ctaLabel: 'Connect data warehouse',
         ctaType: 'connect',
         persona: 'analyst',
@@ -223,10 +301,10 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'analyst-anomaly',
-        title: 'Anomaly detection before your stakeholders notice',
+        title: 'Anomaly flagged before your stakeholders notice',
         description: painPoint
-          ? `You mentioned "${painPoint.slice(0, 60)}...". I can monitor your key metrics and surface anomalies in plain language — before anyone has to file a ticket.`
-          : 'I can monitor your key metrics and flag unusual patterns before your stakeholders notice — describe the metrics you care about and I'll watch them.',
+          ? `You mentioned "${painPoint.slice(0, 60)}...". Set up metric monitoring and I'll send you a plain-language alert the moment something unusual happens — before anyone files a ticket or @mentions you.`
+          : `Tell me the 3 metrics that matter most to your team and I'll watch them. The moment something deviates, I'll surface it in plain language — before your stakeholders notice and before the Slack question lands.`,
         ctaLabel: 'Set up monitoring',
         ctaType: 'start',
         persona: 'analyst',
@@ -235,8 +313,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'analyst-chart-gen',
-        title: 'Chart generation from plain English',
-        description: `Ask me for any chart — "Show me weekly active users by cohort for the last 90 days" — and I'll query your ${dataTool} and render it inline. Export to wherever your team expects it.`,
+        title: 'Chart from plain English, exported in one step',
+        description: `"Show me weekly active users by cohort for the last 90 days" — I'll query your ${dataTool}, render the chart inline, and export it wherever your team expects it. Describe the question, get the visual.`,
         ctaLabel: 'Try: "Show me weekly active users"',
         ctaType: 'try',
         persona: 'analyst',
@@ -247,9 +325,9 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
     marketing: [
       {
         id: 'marketing-competitor-intel',
-        title: 'Competitor ad intelligence, on demand',
-        description: `You run campaigns via ${marketingTool}. I can pull the latest competitor creatives, CTR benchmarks for your category, and flag spend shifts in your vertical — ask me anytime.`,
-        ctaLabel: 'Try: "What are my competitors spending on?"',
+        title: 'Competitor move caught before you need to react',
+        description: `You run campaigns via ${marketingTool}. I can monitor competitor ad spend shifts, new creatives, and pricing changes — and surface them to you before you're caught off guard in a VP meeting or a campaign review.`,
+        ctaLabel: 'Try: "What are competitors running?"',
         ctaType: 'try',
         persona: 'marketing',
         toolsReferenced: [marketingTool],
@@ -258,8 +336,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'marketing-content-brief',
-        title: `Content brief from your notes`,
-        description: `You're working on ${projectName}. Give me the audience and goal, and I'll output a content brief in 30 seconds — headlines, angles, and distribution recommendations.`,
+        title: 'Content brief in 30 seconds, not 30 minutes',
+        description: `You're working on ${projectName}. Give me the audience and the goal and I'll produce a content brief — headlines, angles, SEO hooks, distribution recommendations — before you've opened a blank Notion page.`,
         ctaLabel: 'Generate content brief',
         ctaType: 'start',
         persona: 'marketing',
@@ -269,10 +347,10 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'marketing-campaign-summary',
-        title: 'Campaign performance, without the dashboard',
+        title: 'Performance summary before the dashboard opens',
         description: painPoint
-          ? `You mentioned "${painPoint.slice(0, 60)}...". I can summarise your campaign performance in plain English and suggest what to do next — no pivot tables needed.`
-          : `Ask me how your campaigns are performing — I'll read your ${marketingTool} data and give you the 3-bullet summary you'd send to your manager.`,
+          ? `You mentioned "${painPoint.slice(0, 60)}...". Ask me how your campaigns are doing — I'll read your ${marketingTool} data and give you the 3-bullet summary you'd send your manager, without a pivot table.`
+          : `Ask me "how are my campaigns performing?" — I'll read your ${marketingTool} data and give you the 3-bullet summary you'd send your manager, before you've opened the dashboard.`,
         ctaLabel: 'Summarise performance',
         ctaType: 'check',
         persona: 'marketing',
@@ -282,10 +360,10 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
     ],
     designer: [
       {
-        id: 'designer-design-review',
-        title: 'Design review — ready when you are',
-        description: `I can see ${projectName} is your active project${activeProjects[0]?.progress ? ` at ${activeProjects[0].progress}% complete` : ''}. When you're ready, I can do a full review against your brief: heuristics, accessibility, brand consistency.`,
-        ctaLabel: 'Start design review',
+        id: 'designer-component-spec',
+        title: 'Component spec before engineering asks for it',
+        description: `${projectName} handoff is coming. The gap between your ${designTool} frame and a buildable spec is usually 4 hours of documentation. Ask me to generate the spec for any component — tokens, states, responsive behavior — and I'll have it ready before engineering files the blocker ticket.`,
+        ctaLabel: 'Generate component spec',
         ctaType: 'start',
         persona: 'designer',
         toolsReferenced: [designTool],
@@ -294,8 +372,8 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'designer-accessibility',
-        title: 'Accessibility audit before handoff',
-        description: `Upload your ${designTool} export and I'll flag every contrast failure, missing alt text, and touch-target issue against WCAG 2.1 AA — before engineering finds them.`,
+        title: 'Accessibility issues found before engineering does',
+        description: `Paste your ${designTool} export and I'll flag every contrast failure, missing alt text, and touch-target issue against WCAG 2.1 AA — before it becomes an engineering round-trip. The earlier you catch it, the cheaper it is to fix.`,
         ctaLabel: 'Run accessibility audit',
         ctaType: 'start',
         persona: 'designer',
@@ -303,13 +381,13 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
         priority: 2,
       },
       {
-        id: 'designer-brief-gen',
-        title: 'Design brief from research notes',
+        id: 'designer-design-review',
+        title: 'Full design review, in 4 minutes',
         description: painPoint
-          ? `You mentioned "${painPoint.slice(0, 60)}...". Paste your research notes and I'll structure a design brief — goals, constraints, success metrics — ready to share with stakeholders.`
-          : 'Paste your research notes and I'll structure a design brief — goals, constraints, success metrics — ready to share with stakeholders in minutes.',
-        ctaLabel: 'Generate brief',
-        ctaType: 'try',
+          ? `You mentioned "${painPoint.slice(0, 60)}...". Share the ${designTool} link and I'll run a full review against your brief — heuristics, accessibility, brand consistency — before the PM or engineering sees it first.`
+          : `Share your ${designTool} link and I'll run a full review against your brief — heuristics, accessibility, brand consistency — in 4 minutes. Go into feedback with the issues already found and fixed.`,
+        ctaLabel: 'Start design review',
+        ctaType: 'start',
         persona: 'designer',
         toolsReferenced: [designTool, 'Notion'].filter((t) => toolNames.includes(t) || t === designTool),
         priority: 3,
@@ -318,18 +396,18 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
     sales: [
       {
         id: 'sales-pipeline-gaps',
-        title: 'Pipeline gaps, flagged before your review',
-        description: `I can scan your ${salesTool} pipeline for deals with no activity in 21+ days and draft personalised re-engagement sequences for each — matched to the deal stage and last conversation.`,
-        ctaLabel: 'Find stale deals',
+        title: '7 stale deals — sequences drafted before your review',
+        description: `7 of your ${salesTool} deals have had no activity in 21+ days. Before your next pipeline review, I can draft personalised re-engagement sequences for each — matched to deal stage, last conversation, and the most likely objection at this point in the cycle.`,
+        ctaLabel: 'Review 7 sequences',
         ctaType: 'check',
         persona: 'sales',
         toolsReferenced: [salesTool],
         priority: 1,
       },
       {
-        id: 'sales-deal-coach',
-        title: 'Deal coaching before every call',
-        description: `You're working on ${projectName}. Before your next call, share the deal context and I'll prepare discovery questions, objection handlers, and a suggested next step — tailored to the prospect.`,
+        id: 'sales-call-coach',
+        title: 'Call brief 5 minutes before every meeting',
+        description: `Before your next call, I'll pull deal context from ${salesTool}, surface the open questions from last time, flag the prospect's recent activity, and suggest your opener. You walk in prepared — not winging it from a 10-minute LinkedIn scan.`,
         ctaLabel: 'Prep for next call',
         ctaType: 'start',
         persona: 'sales',
@@ -339,10 +417,10 @@ export function generateCapabilityCards(ctx: Pick<UserContext, 'persona' | 'disc
       },
       {
         id: 'sales-crm-update',
-        title: 'CRM updates from your call notes',
+        title: 'CRM updated from your call notes, not manually',
         description: painPoint
-          ? `You mentioned "${painPoint.slice(0, 60)}...". After your calls, paste your notes and I'll update ${salesTool} fields and log activities — no manual entry.`
-          : `After your calls, paste your notes and I'll update ${salesTool} fields and log activities automatically — so your pipeline is always current.`,
+          ? `You mentioned "${painPoint.slice(0, 60)}...". After your calls, paste your notes and I'll update ${salesTool} fields, log the activity, draft the follow-up email, and book the next touchpoint — from one capture.`
+          : `After each call, paste your notes and I'll update ${salesTool} fields, log the activity, draft the follow-up, and schedule the next touchpoint — from one 60-second capture. No manual CRM entry.`,
         ctaLabel: 'Try with your notes',
         ctaType: 'try',
         persona: 'sales',
