@@ -1,6 +1,6 @@
 # Artisan — Product Requirements Document
 
-**Version:** 0.3
+**Version:** 0.4
 **Branch:** `claude/artisan-onboarding-surface-3T4Dd`
 **Status:** In Progress
 **Last Updated:** 2026-05-23
@@ -21,6 +21,10 @@
 10. [Integration Layer](#10-integration-layer)
 11. [Open-Source Integration Map](#11-open-source-integration-map)
 12. [Success Metrics](#12-success-metrics)
+13. [Reliance Score — The Right Company Metric](#13-reliance-score--the-right-company-metric)
+14. [Oracle Open Cloud POC Brief](#14-oracle-open-cloud-poc-brief)
+15. [The Four Onboarding States](#15-the-four-onboarding-states)
+16. [The Amit Asks Apur Quality Report](#16-the-amit-asks-apur-quality-report)
 
 ---
 
@@ -987,4 +991,410 @@ Tertiary (product-level):
 
 ---
 
-*Document ends. Version 0.3. For questions on this PRD, refer to the Artisan product thread.*
+---
+
+## 13. Reliance Score — The Right Company Metric
+
+### 13.1 The Problem with Engagement Metrics
+
+Engagement metrics — DAU, session length, feature usage rate — measure activity, not value. A user who opens Artisan every morning and ignores the suggestions is "engaged." A user who delegates two critical workflows and never looks back is irreplaceable. These are different things.
+
+**The goal is not to be used. The goal is to be irreplaceable.**
+
+This distinction changes everything about product design:
+- Engagement-optimized products create habit loops (notifications, streaks, friction removal)
+- Irreplaceability-optimized products deepen context, improve calibration, and expand the scope of what users dare to delegate
+
+### 13.2 Reliance Score Definition
+
+**Reliance Score (RS)** measures how much of a user's meaningful work Artisan has become irreplaceable for.
+
+RS is computed daily, per user, as a weighted composite:
+
+```
+RS = (context × 0.30) + (calibration × 0.30) + (proactive × 0.25) + (orchestration × 0.15)
+```
+
+| Dimension | Weight | What It Measures | Example Signal |
+|---|---|---|---|
+| **Context Depth** | 30% | How much of the user's world Artisan knows | Tools connected, projects tracked, decisions remembered |
+| **Calibration** | 30% | How much Artisan has learned the user's taste and corrected mistakes | Correction rate declining, user accepting suggestions increasing |
+| **Proactive Value** | 25% | % of user's proactive sessions where Artisan surfaced something they acted on | Opened morning brief → clicked through → took action |
+| **Orchestration** | 15% | User has delegated multi-step workflows Artisan now owns | Review bot runs, standup generation auto-sent, report auto-filed |
+
+RS is a **0–1 score**. The company goal is:
+
+> **Move the RS floor from 0.44 to 0.70 for L5 skilled users within 6 months of account creation.**
+
+The floor matters more than the average. If the median L5 user scores 0.72 but 40% of L5 users score 0.44, Artisan is not irreplaceable — it's optional.
+
+### 13.3 The Dhanush Test
+
+The Dhanush Test is the internal calibration for measuring what L1–L5 means:
+
+| Level | Description | Typical RS |
+|---|---|---|
+| **L1** | Opens Artisan, reads cards, takes no action | 0.05–0.15 |
+| **L2** | Clicks CTAs, tries a workflow once | 0.15–0.30 |
+| **L3** | Uses 2–3 workflows regularly, still has alternative path | 0.30–0.50 |
+| **L4** | Artisan is the primary path for 1 high-stakes workflow | 0.50–0.65 |
+| **L5** | Cannot imagine removing Artisan from daily flow | 0.65–0.90 |
+
+L5 is defined behaviorally, not by feature usage. The signal is: **would their day break without it?**
+
+Named internally after Dhanush, the first internal user who reached L5 without being prompted to.
+
+### 13.4 RS and Onboarding Design Implications
+
+RS score has direct implications for how onboarding should be designed:
+
+**The goal of onboarding is not to teach features. It is to cross the L2→L3 threshold before the user leaves.**
+
+This means:
+1. **Stage 1 (Connect)**: Build context. Every integration connected increases RS potential ceiling.
+2. **Stage 2 (Interview)**: Calibrate. Every answer reduces the number of corrections Artisan will need to make.
+3. **Stage 3 (Personalization)**: Trigger first proactive value. The hero card should be specific enough that the user says "wait, how did it know that?"
+
+**If a user exits Stage 3 without feeling recognized, they will not reach L3.**
+
+### 13.5 RS as the Board Metric
+
+The north star for Artisan is:
+
+> "% of knowledge workers for whom removing Artisan would break their workflow (L5), measured at Day 90 post-signup"
+
+Target: **25% of active users reach L5 by D90**
+
+Supporting metrics:
+- % reaching L3 by D7: target 60%
+- RS velocity (how fast RS rises in first 14 days): target 0.05/day
+- RS floor for cohort by D30: target 0.44
+- RS floor for cohort by D90: target 0.70
+
+---
+
+## 14. Oracle Open Cloud POC Brief
+
+### 14.1 Background
+
+ClearTax has an enterprise relationship with Oracle Cloud. The Artisan Oracle POC is a B2B demonstration: **can Artisan, connected to Oracle Open Cloud's MCP infrastructure, deliver L3+ RS for enterprise knowledge workers in under 90 minutes of onboarding?**
+
+This is a B2B track running in parallel to the B2C/PLG track. It informs whether Artisan can be sold as an enterprise AI work surface vs. a consumer product.
+
+### 14.2 POC Structure
+
+**Duration:** 2 weeks  
+**Participants:** 8 Oracle Cloud users across 3 roles (PM × 3, Analyst × 3, EM × 2)  
+**Tools connected:** Oracle HCM, Oracle Analytics Cloud, Oracle JIRA-equivalent (Project Management), Slack, Google Workspace  
+**Success criterion:** 5 of 8 users reach RS ≥ 0.50 by Day 14
+
+### 14.3 Five POC Tests
+
+| Test | What We're Testing | Measurement |
+|---|---|---|
+| **T1 — Onboarding Speed** | Can an enterprise user complete all 3 stages in under 12 minutes? | Time to Stage 3 completion |
+| **T2 — Context Quality** | Does Artisan correctly infer role and stack from Oracle Cloud data alone? | Inference accuracy confirmed by user |
+| **T3 — Hero Card Resonance** | Does the hero card reference something real about the user's current work? | "Yes, this is about my current project" rate |
+| **T4 — First Delegation** | Does the user voluntarily initiate a second workflow within 48 hours? | % of users returning within 48h |
+| **T5 — Trust Transfer** | Does the user share an Artisan output with a colleague unasked? | Forward / share rate |
+
+### 14.4 Hypotheses
+
+**H1 (Onboarding):** Enterprise users are more willing to connect integrations because they expect data to be shared across internal tools. They will connect more integrations than consumer users.
+
+**H2 (Context):** Oracle Analytics Cloud data will produce higher-quality hero cards than Google Workspace alone because it contains structured metrics and project data.
+
+**H3 (Trust):** Enterprise users will trust Artisan outputs more if the trust source references an internal system (e.g., "Source: Oracle HCM sprint data") vs. a consumer tool.
+
+**H4 (Delegation):** Enterprise users will delegate workflows faster if Artisan pre-answers the question their manager would ask ("Amit asks Apur" pattern) — reducing the user's political risk in sharing AI output.
+
+### 14.5 MCP Tunnel Architecture for Oracle
+
+The POC uses the Clarity MCP Server as an enterprise tunnel:
+
+```
+Oracle Cloud APIs
+      ↓
+Clarity MCP Server (runs inside Oracle network, no public exposure)
+      ↓  (SSE/HTTP JSON-RPC)
+Artisan Frontend ← VITE_CLARITY_BACKEND_URL points to tunnel endpoint
+      ↓
+User sees oracle-native hero cards
+```
+
+The tunnel architecture means Oracle's data never leaves their network. Artisan calls the tunnel; the tunnel calls Oracle APIs; results are returned. This is the same pattern as the ClearTax deployment but with Oracle Cloud as the MCP host.
+
+### 14.6 POC Success and Decision Gate
+
+If T3 ≥ 75% and T4 ≥ 50%, we proceed to a 90-day enterprise deployment with Oracle.  
+If T3 < 50%, we redesign the hero card generation logic for structured Oracle data.  
+If T4 < 30%, we investigate whether the "first delegation" trigger needs to be more explicit in Stage 3.
+
+---
+
+## 15. The Four Onboarding States
+
+### 15.1 Why Four States, Not a Funnel
+
+Traditional onboarding funnels measure completion rates: % who completed Step 1, Step 2, Step 3. This treats onboarding as a sequence of tasks. Artisan's onboarding is a sequence of **belief changes**. Each state is a new mental model the user has about what Artisan is for.
+
+The four states:
+
+1. **Recognition** — "It sees my world"
+2. **Discovery** — "I didn't know this was possible"
+3. **Belief Change** — "My mental model shifted"
+4. **Trust + Repeat** — "I will delegate again"
+
+A user can exit onboarding (click through Stage 3) without ever reaching State 2. That user will not return. The onboarding design goal is to **trigger all four states within the onboarding session, not after it**.
+
+### 15.2 State 1: Recognition — "It sees my world"
+
+**Trigger moment:** End of Stage 1 (Connect), when the scanning animation resolves and shows discovered tools.
+
+**What must happen for Recognition to occur:**
+- Artisan must name at least one real tool the user uses
+- The tool must be named specifically ("Linear" not "project management tool")
+- The display must feel personal, not generic
+
+**The Loading Experience (90-second hook):**
+
+The scan animation is the highest-leverage moment in the entire onboarding. This is where Recognition either happens or doesn't.
+
+Design requirements:
+- Stage 1 scan must feel alive and intelligent, not like a progress bar
+- Each integration scan must surface tool names as they are discovered: "Found Linear... Found Notion... Found Figma..."
+- The final "scan complete" moment must show a count: "17 tools found across your workspace"
+- The persona inference must appear as a consequence of the scan: "Based on your tools and activity, you look like a **Product Manager**"
+
+**What breaks Recognition:**
+- Generic output ("Connected to Google Workspace")
+- Wrong tool names (hallucinated or out of date)
+- Tool names the user doesn't recognize (wrong scan results)
+- Persona inference that feels random
+
+**Recognition as the trust foundation:**
+Recognition is the only state that builds purely on *data accuracy*. It does not require AI output quality. If Artisan names real tools, users trust that Artisan sees something real. This is Stage 1 of the three trust angles (see 15.5).
+
+### 15.3 State 2: Discovery — "I didn't know this was possible"
+
+**Trigger moment:** Stage 3, when the hero card is first shown.
+
+**What must happen for Discovery to occur:**
+- The hero card must reference something specific about the user's current reality (not generic)
+- The CTA must describe a capability the user didn't know existed
+- The "wow, Artisan can do *that*?" reaction must occur
+
+**Discovery triggers per persona:**
+
+| Persona | Discovery Hook | What the user didn't know was possible |
+|---|---|---|
+| PM (Meera) | "Sprint ends in 3 days. 2 tickets haven't moved." | Artisan can proactively surface stuck tickets before standup |
+| Analyst (Arjun) | "Your weekly metrics report takes 90 minutes. Here's the same report in 4." | Artisan can generate the exact report format Arjun uses |
+| Marketing (Vikram) | "HubSpot says 12%. GA says 8.3%. One of them is wrong." | Artisan can reconcile attribution conflicts across tools |
+| Designer (Vagisha) | "Handoff is in 3 days. The spec isn't written yet." | Artisan can write the spec from Figma annotations |
+| Sales (Shubham) | "7 of your deals haven't been touched in 21 days." | Artisan can generate outreach drafts ranked by close probability |
+
+**Discovery is not about features. It is about reframing what the user thought their job was.**
+
+A PM who discovers that Artisan can write the standup brief now has a 10-minute window back every morning. The discovery isn't "Artisan writes standups." The discovery is "I don't have to do that anymore."
+
+### 15.4 State 3: Belief Change — "My mental model shifted"
+
+Belief Change is the hardest state to engineer because it cannot be forced. It is the result of accumulated small surprises.
+
+**The Belief Map (B0 → B5):**
+
+| Belief State | What the user believes | What triggers the move |
+|---|---|---|
+| **B0** | "AI can do basic things but not my real work" | N/A (entry state) |
+| **B1** | "Artisan knows my tools" | Recognition (State 1) |
+| **B2** | "Artisan can surface something I missed" | First accurate hero card (State 2) |
+| **B3** | "Artisan can draft something I would have written" | First accepted output (not just read — accepted) |
+| **B4** | "I can review Artisan's work instead of doing it myself" | First delegation where the user modified output rather than rewrote from scratch |
+| **B5** | "I am a full-stack builder / PM / analyst now" | First time user ships something they couldn't have shipped before Artisan |
+
+**Important:** B states are sequential. Users cannot skip from B1 to B4. Product design must create the conditions for B2 to happen before attempting to deliver B3-level outputs.
+
+**Belief Change in onboarding:** The goal of Stage 3 is to take the user from B0/B1 to B2 during the onboarding session itself. B3+ happens in the product's main surface (the Artisan workspace). If the user leaves Stage 3 at B1 or below, they will not reach B3 organically.
+
+**Belief Change and the full-stack designer:**
+
+The most radical belief change is for the Designer persona. A UI designer today:
+1. Designs a component in Figma
+2. Writes a spec
+3. Hands off to engineering
+4. Engineering makes changes
+5. Designer reviews and approves
+
+Tomorrow, with Artisan at B5:
+1. Designs a component in Figma
+2. Artisan writes the spec from annotations
+3. Artisan generates the component code (React/Tailwind/shadcn)
+4. Designer reviews the code output, not the spec
+5. Designer approves and ships to production
+
+The Designer is no longer a designer who hands off to engineering. She is a **full-stack builder** who also does design. This is the B5 belief shift for the designer persona. Artisan's job is to create the conditions where this shift feels natural, not forced.
+
+### 15.5 Three Trust Angles
+
+Trust in Artisan comes from three independent sources. Each must be satisfied for the user to reach B4+:
+
+**Trust Angle 1: Data Trust (Does Artisan see the right things?)**
+- Built by: Recognition (State 1), accurate tool names, real project names
+- Broken by: Wrong tool names, hallucinated project references, stale data
+- Design principle: Never show a data point you can't trace. The Trust Marker system exists for this.
+
+**Trust Angle 2: Emotional Trust (Does Artisan get my context?)**
+- Built by: Tone matching (card language that sounds like the user's domain), persona inference accuracy, temporal hooks ("before your standup" not "in the morning")
+- Broken by: Generic language, wrong persona, outputs that feel like they were written for someone else
+- Design principle: Every card must contain at least one phrase that could not have been written for a different user.
+
+**Trust Angle 3: Human-in-the-Loop Trust (Can I correct Artisan without losing value?)**
+- Built by: Easy correction mechanisms (persona corrector in Stage 3, card dismissal, output editing), calibration signals that improve over time, trace layer showing *why* Artisan decided something
+- Broken by: Outputs that ignore corrections, trace layer that is too complex to act on, correction that resets all learning
+- Design principle: Correction must be a signal, not a punishment. When a user corrects Artisan, RS goes up (calibration dimension), not down.
+
+### 15.6 State 4: Trust + Repeat — "I will delegate again"
+
+**Trigger moment:** The user voluntarily initiates a second Artisan workflow within 48 hours of onboarding completion.
+
+This is the "aha" moment in the behavioral sense. It is the moment when Artisan stops being a product the user tried and becomes a habit.
+
+**What makes State 4 happen:**
+1. The first workflow must have produced something the user actually used
+2. The first workflow must have been faster than the user's existing process
+3. The user must have a second obvious workflow to delegate (Artisan surfaces this proactively)
+
+**The "next workflow" surface:**
+At the end of every Artisan output, the UI shows: "Want me to also handle X?" — where X is the next most likely workflow based on what was just completed. This is the State 4 trigger. It is not a feature suggestion. It is an invitation based on a specific observed context.
+
+Example sequences:
+- PM: "Standup brief generated → Want me to also update the sprint tracker with these blockers?"
+- Analyst: "Weekly report generated → Want me to schedule this to auto-send every Monday at 9am?"
+- Designer: "Spec written → Want me to generate the component code from this spec?"
+
+### 15.7 Loading Experience Design
+
+The loading experience across all three stages is critical for building the emotional arc. The user's mental model of Artisan is being formed in the 90 seconds between pressing "Connect" and seeing Stage 3.
+
+**Stage 1 Loading (Scan):**
+- Integration icon appears, then scans with a pulsing ring
+- Tool names appear below the integration as they are "discovered"
+- Counter increments: "14 tools found... 15 tools found..."
+- Scan complete: Brief pause, then "17 tools across 4 integrations. Let's learn how you actually use them."
+
+**Stage 2 → Stage 3 Transition:**
+- After the last interview question is answered, show: "Analyzing your tools and answers..."
+- Then: "Building your workspace profile..."
+- Then: "Generating your personalized view..."
+- Then: The hero card appears with a subtle fade-in (not a loading spinner → sudden appearance)
+
+**Timing principle:** The Stage 1 scan should take 8–12 seconds per integration (even if the actual scan completes faster). This is "perceived intelligence time" — users trust results that took time more than results that appeared instantly. The delay signals processing, not performance issues.
+
+---
+
+## 16. The Amit Asks Apur Quality Report
+
+### 16.1 The Pattern
+
+In ClearTax's engineering culture, design reviews involve a recurring dynamic:
+
+- **Amit** is the engineering manager. He reviews UI changes before merge. He has a checklist of concerns: accessibility, mobile responsiveness, design system compliance, legacy screen compatibility, ship risk.
+- **Apur** is the designer/developer who submits the PR. He knows Amit will ask these questions. He could pre-answer them — but writing the answers into every PR body is tedious and inconsistent.
+
+**The Artisan intervention:** Artisan generates the PR body automatically, pre-answering every question Amit will ask. Apur reviews and approves the generated body before submitting. Amit gets a PR that reads like Apur thought of everything.
+
+The pattern generalizes: **any recurring output that must satisfy a known reviewer's checklist is a candidate for the "Amit asks Apur" pattern.**
+
+### 16.2 Quality Report Structure
+
+The auto-generated PR body follows this structure:
+
+```markdown
+## What Changed
+[1-3 sentences. What the PR does, not how.]
+
+## Why
+[1-2 sentences. What user need or product goal this addresses.]
+
+## Coverage
+
+| Check | Status | Notes |
+|---|---|---|
+| WCAG AA accessibility | ✅ Pass | Contrast ratios verified. Button labels updated. |
+| Mobile responsiveness | ✅ Pass | Tested at 375px, 414px, 768px |
+| Design system compliance | ✅ Pass | Uses shadcn/ui primitives. No custom overrides. |
+| Legacy screen compat | ⚠️ Review | One legacy modal uses z-index 9999. Verified non-conflicting. |
+| Ship risk | 🟢 Low | No API changes. Feature-flagged for 10% rollout. |
+
+## Screenshots
+[Auto-inserted before/after screenshots from Figma diff or Storybook]
+
+## Test Plan
+- [ ] Reviewed in Storybook (all states)
+- [ ] Tested on Chrome, Safari, Firefox
+- [ ] Reviewed against WCAG checklist
+- [ ] PM sign-off: @[pm-handle]
+
+## Artisan Trace
+Source: Figma spec v2.3 (linked), Accessibility audit (linked), Mobile screenshot (auto-generated)
+Generated by Artisan on [timestamp]. Apur reviewed and approved.
+```
+
+### 16.3 The Trust Mechanics
+
+The quality report achieves three trust outcomes simultaneously:
+
+**For Apur (submitter):**
+- Reduces the cognitive overhead of writing PR bodies
+- Ensures nothing important is missed (the checklist is always complete)
+- Shifts work from "write the PR body" to "review the PR body" — a lower-effort activity
+
+**For Amit (reviewer):**
+- PR body answers his questions before he asks them
+- Reduces review time (he doesn't have to chase down accessibility or mobile answers)
+- The "Artisan Trace" section tells him what sources Artisan used — he can verify if he wants, but usually doesn't need to
+
+**For the team:**
+- PRs become a knowledge artifact: the quality report captures *why* every decision was made
+- New team members can read old PRs and understand design rationale
+- The trace layer means Artisan's outputs are auditable, not black-box
+
+### 16.4 Amit's Checklist (Full)
+
+The full checklist Artisan pre-answers:
+
+1. **WCAG AA**: All interactive elements have accessible labels. Color contrast ≥ 4.5:1 for normal text, ≥ 3:1 for large text. Focus indicators visible.
+2. **Mobile**: Responsive at 320px, 375px, 414px, 768px. No horizontal scroll. Touch targets ≥ 44px.
+3. **Design System**: All components from approved design system library. No inline styles that override design tokens. Typography uses approved scale.
+4. **Legacy Compatibility**: No z-index conflicts with existing modals. No CSS that breaks on IE11 (if applicable). No Web Components APIs not polyfilled.
+5. **Ship Risk**: API surface unchanged OR breaking change documented with migration path. Feature-flagged if >5% of users affected. Rollback plan exists.
+6. **Performance**: No new synchronous network calls in render path. Images optimized. Bundle size delta < 5KB.
+7. **Security**: No user data logged to console. No external URLs hardcoded. No eval() or innerHTML with user data.
+
+### 16.5 Generalization: The Pattern for Other Roles
+
+| Reviewer | Submitter | Context | What Artisan pre-answers |
+|---|---|---|---|
+| Amit (EM) | Apur (Designer) | UI PR review | Accessibility, mobile, design system, risk |
+| Priya (VP Product) | Meera (PM) | Feature spec review | User research backing, metric hypothesis, rollback plan |
+| CFO | Finance Analyst | Budget request | ROI model, assumptions table, downside scenario |
+| Client | Account Manager | Proposal | Pricing rationale, timeline, dependency list, risk register |
+| Board | Founder | OKR review | Metric sources, methodology, trend direction, action plan |
+
+**The Artisan "Amit asks Apur" pattern is the generalized version of the Vagisha trust-building bot for non-design roles.** The trust mechanics are identical: Artisan pre-answers the reviewer's checklist so the submitter looks like they thought of everything.
+
+### 16.6 Implementation Notes
+
+The quality report is generated from:
+- Figma diff (via Clarity MCP → Figma integration)
+- Git diff (via Clarity MCP → GitHub integration)
+- WCAG audit (via Clarity MCP → accessibility-check tool)
+- Mobile screenshot (via Clarity MCP → screenshot-service tool)
+- Feature flag status (via Clarity MCP → LaunchDarkly/GrowthBook integration)
+
+The `review-output` component renders the quality report in the Artisan workspace. The user can edit any field before submitting. The "Artisan Trace" section is always shown — it cannot be removed, only minimized. This is a trust-non-negotiable.
+
+---
+
+*Document ends. Version 0.4. Sections 13–16 added: Reliance Score, Oracle POC, Four Onboarding States, Amit/Apur Quality Report.*
