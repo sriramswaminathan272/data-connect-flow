@@ -999,5 +999,558 @@ These rules make Artisan feel like one continuous relationship, not separate scr
 
 ---
 
-*Artisan Design Prompt v1.0 — May 2026*  
-*Feed this entire document to your design tool. All screens are connected. Build them as a system, not individually.*
+## SCREEN 11 — CAPABILITY GAP ASSESSMENT
+
+```
+Purpose: Shown when a user taps into a bud and considers Track A (coaching).
+Displayed before any purchase decision. This is the honest math screen.
+Artisan must show the gap before the user commits.
+
+Layout: Single-column, max-width 640px, centred
+
+─────────────────────────────────────────────────
+HEADER (40px top padding)
+
+  [← Back to Buds]                               
+  
+  "Can you match us?"                             ← 32px semibold, slate-900
+  Capability: Ship Mode — UI to Production        ← 14px slate-500
+  
+─────────────────────────────────────────────────
+GAP ASSESSMENT CARD (white, shadow-lg, rounded-2xl, p-8)
+
+  Artisan's current quality on this bud:          ← 12px label, slate-500, tracking-wide uppercase
+  ████████████████████ 94%                        ← progress bar, indigo-600, 8px height
+  
+  Your observed quality (from bud history):       ← 12px label, slate-500, tracking-wide uppercase
+  ████████░░░░░░░░░░░░ 38%                        ← progress bar, amber-500, 8px height
+  
+  Gap to close: 56 percentage points             ← 16px, slate-700
+
+  ─────────────────── divider ───────────────────
+
+  HOURS TO CLOSE THE GAP                         ← 12px label, slate-500, uppercase
+  
+  Observed practice needed:       180 hrs
+  Assisted practice needed:       120 hrs
+  Independent practice needed:     80 hrs
+  ─────────────────────────────────────
+  Total learning investment:      380 hrs         ← 18px semibold, slate-900
+  
+  At 10 hrs/week:                 38 weeks        ← 14px, slate-600
+  At 20 hrs/week:                 19 weeks        ← 14px, slate-600
+
+─────────────────────────────────────────────────
+OPPORTUNITY COST BLOCK (bg-amber-50, border-l-4 border-amber-400, rounded-xl, p-6)
+
+  "The honest math"                               ← 14px semibold, amber-800
+  
+  Your billing rate (from context):  ₹2,500 / hr  ← 13px, amber-700
+  Hours to invest:                   380 hrs
+  Opportunity cost:                  ₹9,50,000     ← 20px semibold, amber-900
+  
+  Artisan SaaS for 38 weeks:         ₹76,000       ← 13px, amber-700
+  
+  The math favours Track B by:       ₹8,74,000     ← 16px semibold, amber-900
+
+─────────────────────────────────────────────────
+ARTISAN RECOMMENDATION (bg-slate-900, rounded-2xl, p-6, mt-6)
+
+  ● verified · Source: bud history + billing context  ← 11px, slate-400
+  
+  "Track B is the rational economic choice."          ← 18px semibold, white
+  
+  "380 hours of learning costs you ₹9,50,000 in
+  opportunity. Track B costs ₹76,000 over the
+  same period. Unless your goal is independence
+  beyond this role, staying is smarter."
+                                                      ← 14px, slate-300, leading-relaxed
+  
+  "If independence is the goal regardless of cost,
+  Track A is available. We'll show you the exact
+  curriculum before you begin."
+                                                      ← 14px, slate-400, leading-relaxed
+
+─────────────────────────────────────────────────
+CTA ROW (mt-8, flex gap-3, justify-end)
+
+  [View Track A curriculum →]   ← ghost button, slate-600
+  [Stay on Track B]             ← filled, indigo-600
+
+─────────────────────────────────────────────────
+FOOTNOTE
+
+  "Numbers calculated from your bud history and
+  calendar context. Source: observed sessions · verified"
+                                                    ← 11px, slate-400, text-centre
+```
+
+---
+
+## SCREEN 12 — TRACK SELECTION (TWO CONTRACTS)
+
+```
+Purpose: After the user has seen the gap assessment, they choose their track.
+This is a contract screen, not a pricing page. Two honest offers, no dark patterns.
+
+Layout: Split panel, full viewport, 2×50% columns on desktop / stacked on mobile
+
+─────────────────────────────────────────────────
+HEADER (centred, above both panels)
+
+  "Two ways to work with Artisan."                ← 28px semibold, slate-900
+  "Both are honest. Both generate results. 
+   Your call."                                    ← 15px, slate-500, mt-1
+
+─────────────────────────────────────────────────
+LEFT PANEL — TRACK A (bg-white, border border-slate-200, rounded-2xl, p-8)
+
+  [COACHING]                                      ← 11px chip, bg-violet-100, text-violet-700
+  
+  "Graduate from us."                             ← 24px semibold, slate-900
+  
+  "You want to own this skill. We teach you the
+  exact moves. At IS ≥ 0.80, you graduate.
+  You can cancel. We celebrate."                  ← 14px, slate-500, leading-relaxed
+  
+  ─── What's included ───────────────────────────
+  
+  ✓ Observed practice sessions (guided)           ← 13px, slate-700, gap-2.5 list
+  ✓ Assisted practice with feedback
+  ✓ Independent practice + calibration
+  ✓ Graduation test (IS benchmark)
+  ✓ IS dashboard per bud, updated weekly
+  ✓ Exit any time — no lock-in
+  
+  ─── Timeline ──────────────────────────────────
+  
+  Ship Bud:    38 weeks @ 10 hrs/week             ← 13px, slate-600
+  Review Bud:  12 weeks @ 10 hrs/week
+  Predict Bud: 16 weeks @ 10 hrs/week
+  
+  ─── Price ─────────────────────────────────────
+  
+  ₹8,999 / month                                  ← 22px semibold, slate-900
+  Fixed. No usage billing.                        ← 12px, slate-500
+  
+  [Start Track A →]                               ← full-width button, violet-600
+
+RIGHT PANEL — TRACK B (bg-slate-950, rounded-2xl, p-8)
+
+  [RELIANCE]                                      ← 11px chip, bg-indigo-900, text-indigo-300
+  
+  "Own us."                                       ← 24px semibold, white
+  
+  "You delegated the decision. New capabilities
+  exist that didn't before. The RS keeps climbing.
+  The math said staying was smarter. You agreed." ← 14px, slate-400, leading-relaxed
+  
+  ─── What's included ───────────────────────────
+  
+  ✓ All buds, active immediately                  ← 13px, slate-300, gap-2.5 list
+  ✓ Proactive surface — Artisan initiates
+  ✓ Full trace + Release AI Assistant
+  ✓ RS + IS tracking (honest mirror)
+  ✓ D90 honest assessment (with coaching offer)
+  ✓ Coaching track always available
+  
+  ─── Current RS impact ─────────────────────────
+  
+  "You delegated 8 features this month."          ← 13px, slate-400
+  "Artisan caught 4 things before you did."       ← 13px, slate-400
+  "Last Tuesday: shipped something impossible
+   in April."                                     ← 13px, slate-400
+  
+  ─── Price ─────────────────────────────────────
+  
+  ₹5,999 / month                                  ← 22px semibold, white
+  Per seat. Billed monthly.                       ← 12px, slate-500
+  
+  [Stay on Track B →]                             ← full-width button, indigo-600
+
+─────────────────────────────────────────────────
+FOOTER (centred, below both panels, mt-6)
+
+  "You can switch tracks at any time. There is no
+  right answer. The Reliance Score measures outcomes,
+  not loyalty."                                   ← 12px, slate-400, italic, text-centre
+```
+
+---
+
+## SCREEN 13 — COACHING CURRICULUM VIEW (PER BUD)
+
+```
+Purpose: Shown after Track A selection, or accessible from bud detail.
+Shows the exact 10-week curriculum for a specific bud. No promises, just the map.
+
+Context header (matches bud colour — violet for Review, teal for Ship, etc.)
+
+─────────────────────────────────────────────────
+BUD IDENTITY ROW (p-6 bg-bud-colour/10)
+
+  ◎ Ship Mode                                     ← 24px semibold, slate-900
+  UI to Production · New Bud                      ← 13px, slate-500
+  
+  Your IS: 38%   Target: 80%   Gap: 42pp          ← 3 pills, 12px, spaced evenly
+
+─────────────────────────────────────────────────
+CURRICULUM TIMELINE (vertical, numbered weeks)
+
+  Each week row:
+    Week number    Phase label       Status
+    ─────────────────────────────────────────────
+    1–2            Observe           [Active]       ← 14px semibold, status chip
+    3–4            Observe           [Upcoming]
+    5–6            Assisted          [Upcoming]
+    7–8            Independent       [Upcoming]
+    9–10           Graduation Test   [Upcoming]
+
+  Active row: bg-indigo-50, border-l-4 border-indigo-500, rounded-r-xl
+  Upcoming row: bg-white, border-l-4 border-slate-200, rounded-r-xl
+  Completed row: bg-emerald-50, border-l-4 border-emerald-400, rounded-r-xl
+  
+  Each row expanded (tapped): shows
+    - What you do this week (2–3 sentences)
+    - What Artisan does
+    - How IS is measured this week
+    - Session count target
+    - Estimated hours
+
+─────────────────────────────────────────────────
+CURRENT WEEK DETAIL (shown inline, always visible)
+
+  Week 1–2 · Observe                              ← 16px semibold, slate-900
+  
+  "Watch how Artisan handles 5 Ship Mode tasks.
+  Your job: approve or reject. No prompting needed.
+  IS is measured by how often your approval matches
+  Artisan's confidence score."                    ← 14px, slate-600, leading-relaxed
+  
+  Sessions this week: 3 of 4 complete             ← progress, emerald
+  Hours logged: 6 of 8 hrs                        ← progress, indigo
+  IS this week: 41% → 44%                         ← small delta chip, emerald
+  
+  [Start session 4 →]                             ← indigo button
+
+─────────────────────────────────────────────────
+IS TREND CHART (below curriculum)
+
+  Line chart, 10 weeks on X-axis
+  Y-axis: 0%–100% IS
+  Dashed line at 80% (graduation threshold)
+  Solid line: actual IS trend
+  Projected line (dashed, lighter): if pace maintained
+  Annotation at intersection: "Projected graduation: Week 9"
+
+─────────────────────────────────────────────────
+COACHING NOTE (bottom, bg-slate-50, rounded-xl, p-5)
+
+  "If your IS reaches 80% before Week 9, you graduate
+  early. If it stalls, Artisan adjusts the curriculum.
+  You will not be told you're behind. You will be
+  shown what to practice."                        ← 13px, slate-500, italic
+```
+
+---
+
+## SCREEN 14 — IS SCORE IN WORKSPACE (SIDEBAR + BUD DETAIL)
+
+```
+Purpose: The Independence Score must be visible alongside the Reliance Score
+in the workspace, without dominating. It is the honest mirror.
+
+─────────────────────────────────────────────────
+WORKSPACE SIDEBAR — SCORE BLOCK (at top of left rail)
+
+  Two scores, side by side, equal visual weight:
+
+  ┌──────────────────┬──────────────────┐
+  │   Reliance       │   Independence   │
+  │      0.62        │      0.44        │ ← 28px semibold, slate-900
+  │   RS · today     │   IS · avg buds  │ ← 11px, slate-400
+  └──────────────────┴──────────────────┘
+
+  Below the pair, one consequence line (not both scores):
+  "You delegated 8 features this month."          ← 13px, slate-600
+  This alternates weekly between RS and IS consequences.
+  
+  Not shown:
+    — Progress bars on these numbers
+    — Delta arrows (only in weekly digest)
+    — Raw formula breakdown
+    
+  Shown only in D90 / coaching view:
+    — Breakdown by dimension
+    — Component weights
+    — Historical trend
+
+─────────────────────────────────────────────────
+BUD DETAIL PANEL — IS CHIP (per bud)
+
+  Each bud in bud board has its IS chip:
+  
+  ◎ Review Bud          [Active]
+  IS: 67%  ↑ 4pp this week                       ← small chip, emerald-600
+  
+  On tap → expands to per-bud IS breakdown:
+    Observed quality:    71%
+    Unaided attempts:    63%
+    Calibration match:   68%
+    ─────────────────────────────────────
+    IS this week:        67%  ↑ from 63%
+    Target to graduate:  80%
+    At current pace:     +6 weeks
+  
+  [View coaching track →]                         ← ghost button, 12px
+
+─────────────────────────────────────────────────
+WEEKLY DIGEST — IS MENTION (in Now Watching / digest card)
+
+  "Your IS on Review Bud reached 67% — up 4 points
+  this week. 13 points from graduation."          ← 13px, slate-700
+  Source: bud sessions · verified   ●             ← 11px trust marker
+  
+  This card does not appear every week.
+  It appears when IS changes by ≥ 3pp in either direction.
+  Regression surfaces more urgently:
+  "Your IS on Ship Bud dropped 5pp this week."   ← amber-700
+```
+
+---
+
+## SCREEN 15 — RELEASE INTELLIGENCE SYSTEM
+
+```
+Concept: Every decision made during Ship Mode is recorded as a trace.
+Traces power a Release AI Assistant that answers any QA, EM, or PM question
+with evidence, not opinion. The goal: zero-question releases.
+PRs that explain themselves before anyone has to ask.
+
+─────────────────────────────────────────────────
+TRACE VIEWER — LAYOUT (2-panel, accessed from PR body or Artisan workspace)
+
+  Left panel:  560px · Chat thread
+  Right panel: auto · Evidence viewer (updates on every AI response)
+  
+─────────────────────────────────────────────────
+LEFT PANEL — CHAT
+
+  Thread of questions + AI answers, scrollable.
+  Each AI response:
+    Answer text (slate-900, 14px, leading-relaxed)
+    
+    Inline evidence previews (directly below the paragraph):
+    
+      Screenshot preview:
+        240×160px · rounded-xl · shadow-sm
+        Caption: "Pixel 7 · Portrait · Post-ship"  ← 11px, slate-400
+      
+      Video clip preview:
+        Thumbnail (240×135px) + duration chip + ▶ play button overlay
+        Tapping plays inline, expands right panel to video tab
+      
+      Code diff preview:
+        Dark background · rounded-xl · 6 lines max · line numbers
+        Line additions: emerald-800 bg · deletions: red-900 bg
+        "View full diff →" if truncated
+      
+      Voice quote preview:
+        Audio waveform (small, 200px wide, indigo bars)
+        Transcript excerpt below, italic, slate-600
+        Timestamp chip: "3:47 into session"
+      
+      Test result preview:
+        Pass/fail chip (emerald/red) + scenario name
+        "Scenario 2: Pixel 7 portrait — PASS"
+    
+    Confidence indicator below each answer:
+      ● verified  — trace evidence exists, direct match
+      ◐ inferred  — derived from trace context, no direct cite
+    
+    Expand button: "View full evidence →" → opens right panel to that trace
+
+─────────────────────────────────────────────────
+LEFT PANEL — PROACTIVE SECTION (top of chat, pre-loaded before first question)
+
+  Header:
+    "Artisan has pre-answered the most likely questions:"  ← 13px, slate-500, italic
+
+  Pre-answer rows (accordion, closed by default, expandable):
+  
+    ● Was this tested on iOS?          → Yes. Scenario 2.    [see →]
+    ● Does it match design system?     → Yes. 0 overrides.  [see →]
+    ● What's the rollout risk?         → 🟢 Low. Flagged.    [see →]
+    ● What changed visually?           → Before/after.       [see →]
+    ● Who approved?                    → Vagisha, 14:47.     [see →]
+    
+    ● = verified trace evidence
+    ◐ = inferred from context
+    
+    Each row on expand: shows inline evidence preview (same format as answers)
+    [see →] taps to right panel for full evidence
+
+─────────────────────────────────────────────────
+RIGHT PANEL — EVIDENCE VIEWER
+
+  Tabs (sticky at top):
+    [Screenshots]  [Video]  [Code]  [Tests]  [Decisions]
+  
+  Default view: large render of the most recently cited evidence
+  
+  Screenshots tab:
+    Grid: 2-column, each card clickable to full-screen
+    Each: device label + timestamp + context note
+    State indicator chip: before-ship / post-ship / emulator
+  
+  Video tab:
+    Full-width player (16:9)
+    Timeline scrubber with trace annotations (tappable markers)
+    AI links to exact timestamps — "Jump to 3:47" clickable in chat
+    Caption track: AI-generated transcript, synced
+  
+  Code tab:
+    Full diff viewer: side-by-side or unified toggle
+    Line-level annotations where AI made decisions (hover to see rationale)
+    Confidence dots at file level: ● / ◐
+  
+  Tests tab:
+    All 5 rehearsal scenarios listed
+    Pass/fail per scenario, per device
+    Tap to see screenshot + log for any scenario
+  
+  Decisions tab:
+    Chronological log of every decision point
+    Each: timestamp · what Artisan decided · why · confidence
+    Voice commands that triggered decisions: inline playable clips
+  
+  Timeline scrubber (bottom of panel, persistent):
+    Full session duration
+    Colour-coded markers: voice commands (indigo), code changes (emerald),
+    screenshots (amber), approvals (white)
+    Seek to any point; evidence panel updates to match
+
+─────────────────────────────────────────────────
+REPORT TABS VIEW (within Release view, above chat panel)
+
+  Tab bar:
+    [QA Report]  [Eng Report]  [Frontend]  [Backend]  [PM Brief]
+  
+  Each report tab:
+  
+    Report confidence header:
+      "94% of claims in this report are trace-verified."  ← 13px, slate-500
+      Confidence bar (thin, indigo-600, full-width below header)
+    
+    Report body:
+      Generated from traces, structured prose
+      Every claim has an inline trace citation: [→] 
+      Tapping [→] opens that trace in the evidence panel
+    
+    Footer:
+      [Download PDF]  ← PDF includes embedded screenshots, 
+                         confidence annotations, trace citations
+
+─────────────────────────────────────────────────
+PROGRESS DASHBOARD (separate view, accessible from workspace)
+
+  Metric cards (4 across top, each rounded-xl, shadow-sm):
+  
+    Card 1: PRs raised
+      Total / by Artisan / by engineers
+      3 stacked mini-bars showing split
+    
+    Card 2: Errors caught
+      Rehearsal vs. production ratio
+      "4 caught in rehearsal, 0 reached production"
+    
+    Card 3: QA questions auto-answered
+      Large number: "84%"
+      Subtext: "347 of 413 questions this month"
+    
+    Card 4: Zero-question releases
+      Count + trend arrow
+      "3 this month ↑ from 1"
+      Milestone annotation if first one: "First: May 23."
+
+  Confidence trend chart (below cards):
+    Line chart, 4 weeks on X-axis
+    Y-axis: % QA questions auto-answered (0–100)
+    Goal line: 90% (dashed, indigo-400, labelled)
+    Annotation pinned at milestones:
+      "First zero-question release" with date dot
+  
+  Release velocity chart:
+    Bar chart: X = week, Y = releases + avg days to merge
+    Bar fill colour by risk level:
+      🟢 emerald-500 (low risk)
+      🟡 amber-500   (medium)
+      🔴 red-500     (high)
+  
+  Bud attribution table:
+    Column: Bud name / releases / zero-Q releases / zero-Q rate
+    Hover row: shows that bud's sparkline trend
+    Sort by zero-Q rate descending (default)
+
+─────────────────────────────────────────────────
+MOTION + INTERACTION
+
+  Trace cite in chat:
+    Evidence panel slides to match cited evidence — 300ms ease-out
+    Right panel tab switches with cross-fade — 150ms
+  
+  Video seek:
+    Frame scrubs in real-time as handle drags
+    AI timestamp links: panel seeks instantly on tap
+  
+  Pre-answered questions accordion:
+    Expand: 200ms height animation, evidence preview fades in
+    Evidence panel auto-updates to match hovered/open item
+  
+  New question asked:
+    AI typing indicator: 3 dots animation, indigo
+    Evidence panel updates BEFORE response text completes —
+    user sees the evidence loading while the answer is composing
+  
+  Zero-question milestone:
+    Dashboard card: single indigo pulse (box-shadow pulse, 600ms, once)
+    No confetti. No pop-up.
+    Annotation text appears: "First zero-question release. May 23."
+  
+  Confidence score animation:
+    Runs in background as AI processes trace log
+    Number increments from lower estimate to final — 800ms, eased
+    Only plays once per session open
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+
+1. Every AI answer cites a specific trace — never opinion.
+   No answer without a [→] citation. No exceptions.
+
+2. Confidence level shown on every answer.
+   ● verified / ◐ inferred — always present, never hidden.
+
+3. Video is seekable and AI links to exact timestamps.
+   "Jump to 3:47" must work. Linking to full video is insufficient.
+
+4. Pre-answered questions appear in PR body automatically.
+   Zero human writing. Artisan generates before anyone asks.
+
+5. Zero-question releases are counted and celebrated quietly.
+   One pulse. A date. Nothing more.
+
+6. Production traces close the loop back to the originating bud.
+   24h/72h metrics (impressions, errors, engagement) feed back
+   into the bud that shipped the feature. The bud learns.
+
+7. The dashboard headline metric is always:
+   "% of QA questions answered without a human."
+   All other metrics are secondary. This is the company KPI.
+```
+
+---
+
+*Artisan Design Prompt v1.1 — May 2026*  
+*Feed this entire document to your design tool. All screens are connected. Build them as a system, not individually.*  
+*Screens 11–15 added: Capability Gap Assessment, Track Selection, Coaching Curriculum, IS in Workspace, Release Intelligence System.*
