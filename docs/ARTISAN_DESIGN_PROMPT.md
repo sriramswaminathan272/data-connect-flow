@@ -3198,11 +3198,209 @@ NON-NEGOTIABLES
 ```
 Architecture: One trace. Six views.
 The same evidence, filtered for each stakeholder's first question.
+No one reads the raw trace. Everyone gets their view.
 
 Every view shares:
   · The Accountability Chain component (see below)
   · Source citations (● verified / ◐ inferred)
   · [Ask Artisan →] — any question, answered from the trace
+
+THE "ARTISAN RESPECTS YOUR ROLE" PRINCIPLE
+Every stakeholder view starts from this position:
+Artisan is not replacing you. It is doing the work that lets you
+do your job better.
+
+  Stakeholder     Old world                         With Artisan
+  ─────────────────────────────────────────────────────────────────
+  EM              Reviewing code for 2 hours,       PR explains every decision
+                  asking PM what decisions           with a cited source
+                  were made
+  
+  QA Manager      Writing test cases from           Starting from 23 pre-run
+                  scratch, chasing coverage          scenarios, adding what's missing
+  
+  Developer       Maintaining code with no           Ask Artisan any question about
+                  context on decisions               any line, get cited evidence
+  
+  Business Mgr    Asking "how did this get           Seeing the accountability
+                  shipped?" after the fact           chain before it ships
+  
+  Design Lead     Comparing Figma to                 Pre-computed overlay showing
+                  implementation pixel by pixel      0px deviation
+  
+  On-call Eng     Debugging blind at 2am             Pre-written runbook with known
+                                                     failure modes
+```
+
+---
+
+## STAKEHOLDER FEAR HIERARCHIES
+
+```
+Every stakeholder view is designed around a specific first question
+and an underlying fear. Design must answer the first question
+immediately — within the first 3 lines of the view.
+
+─────────────────────────────────────────────────
+ENGINEERING MANAGER
+
+  First question:   "Did this meet our engineering standards?"
+  Underlying fear:  "I'm responsible for code quality. A PM shipped
+                     code. If it's bad, it's on me. I'll be cleaning
+                     this up for months."
+  Fear stack:
+    1. Code quality — linting, complexity, coverage
+    2. Pattern compliance — did it do things our way?
+    3. Tech debt — does this create future work?
+    4. Accountability — who is responsible if this breaks?
+    5. Reviewability — can I understand this PR in 10 minutes?
+
+─────────────────────────────────────────────────
+QA MANAGER
+
+  First question:   "What wasn't tested?"
+  Underlying fear:  "Artisan will miss something obvious and my team
+                     will be blamed for letting it through."
+  Fear stack:
+    1. Coverage gaps — what paths weren't run?
+    2. Edge cases — did it test hard stuff or just the happy path?
+    3. Repeatability — can we re-run these in our own pipeline?
+    4. Regression — does this touch anything already passing?
+    5. Independence — are Artisan's tests integrated with our CI?
+
+─────────────────────────────────────────────────
+SDE / DEVELOPER (who maintains this)
+
+  First question:   "Can I understand this 6 months from now at 2am?"
+  Underlying fear:  "I'm now on-call for code I didn't write and don't
+                     understand. When it breaks, I'm debugging blind."
+  Fear stack:
+    1. Readability — is this code I can follow?
+    2. Debuggability — are the failure modes documented?
+    3. Pattern adherence — did it do something novel that breaks conventions?
+    4. Ownership — am I responsible for code I didn't write?
+    5. Explainability — can someone explain why every decision was made?
+
+─────────────────────────────────────────────────
+BUSINESS MANAGER
+
+  First question:   "Is there an audit trail? Who approved this?"
+  Underlying fear:  "A PM shipped to production without a sprint.
+                     If something goes wrong, is this even sanctioned?"
+  Fear stack:
+    1. Accountability chain — who approved what, when
+    2. Risk level — what's the blast radius if it breaks?
+    3. Speed vs. safety — was anything cut to ship fast?
+    4. Business impact — what was the return on this?
+    5. Governance — does this follow our release process?
+
+─────────────────────────────────────────────────
+DESIGN LEAD
+
+  First question:   "Does it match the spec pixel-for-pixel?"
+  Underlying fear:  "Artisan interpreted my Figma and shipped
+                     something that looks close but isn't right."
+  Fear stack:
+    1. Figma compliance — overlay: design vs. implementation
+    2. Token usage — any hardcoded values? Any overrides?
+    3. Responsive behaviour — does it hold on all breakpoints?
+    4. Interaction fidelity — are animations and states correct?
+
+─────────────────────────────────────────────────
+ON-CALL ENGINEER
+
+  First question:   "If this breaks at 2am, can I fix it without context?"
+  Underlying fear:  "I'll be paged for an incident on code I've never
+                     seen, built by an AI, with no one to call."
+  Fear stack:
+    1. Known failure modes — what are the documented ways this breaks?
+    2. Rollback path — is there a fast, safe undo?
+    3. Runbook — step-by-step: if X happens, do Y
+    4. Key contacts — who knows most about this feature?
+    5. Dependency map — what does this touch? What doesn't it?
+```
+
+---
+
+## THE PR THAT EXPLAINS ITSELF (auto-generated per stakeholder)
+
+```
+When Artisan raises a PR, the body auto-generates a section for
+each reviewer before they open a single file. No human writing.
+Every claim is trace-backed.
+
+PR: feat/expert-picks
+─────────────────────────────────────────────────
+FOR ENGINEERING MANAGER
+
+  Code quality:       A  (ESLint: 0 errors, 0 warnings)
+  Pattern compliance: 100%  (follows FeaturedBrands conventions)
+  Test coverage:      89%  (team standard: 80%)
+  New tech debt:      None detected
+  Spec reviewed by:   Apur Sharma · June 12 · 10:31 AM
+
+  "3 new files. Follows patterns from FeaturedBrands (March).
+   Apur approved the approach before build started."
+
+─────────────────────────────────────────────────
+FOR QA MANAGER
+
+  Scenarios run:    23  ✓ all passed
+  Devices tested:   Pixel 7 · iPhone 15 · iPad
+  Regression suite: 47 tests · 0 failures
+  Known gaps:       Timeout > 60s (low risk, flagged)
+                    Offline state (not in scope, documented)
+  Re-run tests:     [One-click replay in CI →]
+
+  "Happy path + 8 edge cases. 2 gaps flagged honestly.
+   Tests exported to your pipeline format."
+
+─────────────────────────────────────────────────
+FOR DEVELOPER
+
+  New components:    2  (ExpertPicksStrip, ExpertPicksCard)
+  Pattern source:    FeaturedBrands.tsx (same structure)
+  Shared endpoints:  WishlistAPI.getUserItems() (2 other callers)
+  Known failure mode: editorial_score null on non-editorial products
+                      → fallback: recommendation_score (tested Scenario 7)
+  Ask Artisan:       [Chat with Release AI →]
+
+  "Artisan can explain any line of this code.
+   Decision log: 14 entries."
+
+─────────────────────────────────────────────────
+FOR BUSINESS MANAGER
+
+  Approved by:       Meera Iyer (PM) · June 12 · 14:52
+  Spec reviewed by:  Apur Sharma (Eng) · June 12 · 10:31
+  QA:                23 scenarios · 0 failures
+  Rollback:          Feature flag · 2 seconds · no deploy needed
+  Risk level:        Low (no critical path touches)
+  Sprint equivalent: 3 days → 6 minutes
+  Audit trail:       [Full trace →]
+
+─────────────────────────────────────────────────
+FOR DESIGN LEAD
+
+  Figma frame:     HP-07 · v3.2
+  Pixel deviation: 0px on card layout
+  Token overrides: 0
+  Hardcoded values: 0
+  Breakpoints:     Mobile ✓  Tablet ✓  Desktop ✓
+  [Design overlay →]  Figma vs. implementation, opacity slider
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES FOR THE AUTO-GENERATED PR BODY
+
+1. Every section is generated from trace — never human-written.
+2. Every claim is cited. "0 errors" links to the lint report.
+   "Apur Sharma" links to the review card with timestamp.
+3. The PR body is the first thing each reviewer sees.
+   It must answer their first question before they scroll.
+4. Known gaps are always listed — for QA, for EM.
+   A PR that hides gaps is a PR that destroys trust on discovery.
+5. [Ask Artisan →] appears in every section.
+   Any reviewer can ask any question and get a trace-backed answer.
 ```
 
 ---
