@@ -1551,6 +1551,500 @@ NON-NEGOTIABLES
 
 ---
 
-*Artisan Design Prompt v1.1 — May 2026*  
-*Feed this entire document to your design tool. All screens are connected. Build them as a system, not individually.*  
-*Screens 11–15 added: Capability Gap Assessment, Track Selection, Coaching Curriculum, IS in Workspace, Release Intelligence System.*
+---
+
+## SCREEN 16 — FIX ABSTRACTION LAYER (UBIQUITOUS LANGUAGE)
+
+```
+Concept: When Artisan fixes a bug or modifies code, the PM never sees a raw diff.
+Instead they see a flowchart in business language. The code is always available
+behind a tap. When Artisan is stuck, an engineer can drop in with full context
+already loaded — no reconstruction needed.
+
+This is Eric Evans's Ubiquitous Language applied to AI output:
+flowchart nodes ARE the code, named for the business domain.
+Tap any node → you are in the code. Same thing, different zoom level.
+
+─────────────────────────────────────────────────
+LAYER 0 — FLOWCHART VIEW (PM default, always shown)
+
+  Header:
+    "Export breaks when rows > 5,000"         ← 20px semibold, slate-900
+    Fixed · Row Limit Validation moved earlier ← 13px, emerald-600
+    Source: ExportHandler.go · verified ●      ← 11px trust marker
+
+  BEFORE / AFTER toggle (pill tabs, top-right of flowchart)
+
+  Flowchart (DAG, top-to-bottom, centred):
+
+    BEFORE state:
+      [Export Request]
+           ↓
+      [Auth Check]              ✓ chip, emerald
+           ↓
+      [Fetch All Rows]          ✓ chip, emerald
+           ↓
+      [Row Limit Validation]    ✗ chip, red — node pulsing red border
+           ↓ (greyed out, dashed line)
+      [Generate CSV]            — unreachable
+
+    AFTER state (switch toggle):
+      [Export Request]
+           ↓
+      [Auth Check]              ✓ chip
+           ↓
+      [Row Limit Validation]    ✓ chip — moved node, glows emerald
+           ↓
+      [Fetch Rows (in limit)]   ✓ chip
+           ↓
+      [Generate CSV]            ✓ chip
+
+    Node visual:
+      rounded-2xl, white bg, shadow-sm, border border-slate-200
+      120px wide, 44px tall, centred label — 13px semibold slate-900
+      Status chip: top-right corner of node
+      Tap indicator: subtle ↗ icon bottom-right — "tap to expand"
+
+    Changed nodes:
+      Highlight: indigo-50 bg, border-indigo-300
+      Label: "Modified" chip — 10px, indigo-600
+
+  Tap any node → inline expand below node (Layer 1)
+
+─────────────────────────────────────────────────
+LAYER 1 — ANNOTATED DIFF (tap "View code" on any node)
+
+  Expands inline beneath the tapped node.
+  Node gets a blue-left-border treatment to show it's open.
+
+  Layout:
+    Plain English description (above the diff):
+      "Row Limit Validation now runs before rows are fetched.
+       Previously, it checked the limit after the database call —
+       meaning the expensive query still ran even if the export
+       would be rejected."                        ← 13px, slate-600
+
+    Code diff (dark bg, rounded-xl, max 20 lines):
+      - func validateRowLimit(count int, tier string) error {   ← red-900 bg line
+      + func validateRowLimit(req ExportRequest) error {        ← emerald-900 bg line
+      +   if req.RowCount > tierLimits[req.UserTier] {
+      +     return ErrRowLimitExceeded
+            }
+
+    Per-line annotation (hover/tap any line):
+      Tooltip: "Previously passed raw count. Now passes full
+      request so tier limits can be checked before the DB call."
+
+    "View full file →" link if context > 20 lines
+
+  Collapse: tap node again or tap [×]
+
+─────────────────────────────────────────────────
+LAYER 2 — ENGINEER HANDOFF (Artisan stuck / manual)
+
+  Triggered automatically when Artisan has been on a fix > 10 min
+  with no resolution. Also available always via [Needs human] button.
+  
+  Notification in Now Watching bar:
+    ⚠  Artisan needs help — stuck on Export fix  [See context →]
+
+  Full-screen handoff panel (bg-slate-950, text-white):
+
+    TOP: What it's trying to fix
+      "Export breaks when rows > 5,000"         ← 22px semibold, white
+      ExportHandler.go · validateRowLimit()      ← 13px, slate-400
+
+    APPROACHES TRIED (timeline, vertical):
+      Approach A  Move validation before fetch
+                  Result: ✓ fixed the break
+                  But: TestExportWithPagination ✗ (now failing)
+
+      Approach B  Add pagination fallback
+                  Result: ✗ Conflict at ExportPaginator.go:L88
+                  Reason: hardcoded row-order assumption
+
+    WHERE IT'S STUCK (bg-amber-950, rounded-xl, p-5):
+      "L88 has a hardcoded assumption about row order.
+       Artisan cannot determine if row order is a contract
+       or incidental without domain knowledge."
+       
+      "Question for engineer: Is row order guaranteed
+       by the caller, or can ExportPaginator re-sort?"
+
+    CONTEXT LOADED (pre-fetched, ready):
+      ● ExportHandler.go         full file          [Open]
+      ● ExportPaginator.go       L72–L103           [Open]
+      ● TestExportWithPagination failing test        [Open]
+      ● Code graph               4 callers mapped   [Open]
+
+    CTA row:
+      [Ask Artisan a question]    [Take over →]
+
+    Take over: engineer claims the task. Artisan stays in
+    context and answers questions. Session recorded as
+    "human-assisted fix" in trace log.
+
+─────────────────────────────────────────────────
+PROGRESSIVE DISCLOSURE SUMMARY
+
+  Layer 0  Flowchart          PM sees this. No code.
+  Layer 1  Annotated diff     One tap. Code with plain English.
+  Layer 2  Engineer handoff   Auto-triggered or manual. Full context.
+
+  The abstraction is not a translation. It is a zoom level.
+  The code is always there. The PM just doesn't need it by default.
+```
+
+---
+
+## SCREEN 17 — LIVE QA AGENT
+
+```
+Concept: When Artisan applies a fix, a parallel QA agent spawns immediately
+on the connected device or emulator. The PM watches it work in real-time.
+They can ask it questions without pausing the run. They can inject test cases
+mid-run. Trust comes from watching, not from reading a report.
+
+─────────────────────────────────────────────────
+LAYOUT — 2 PANEL (full viewport)
+
+  Left panel (55%):   Device mirror — live emulator/phone screen
+  Right panel (45%):  Agent activity feed + chat
+
+─────────────────────────────────────────────────
+LEFT PANEL — DEVICE MIRROR
+
+  Full device frame (Pixel 7 or iPhone 15 silhouette)
+  Content area: live screen of the emulator
+  
+  Overlay elements (non-blocking):
+    Top-left chip:  "Pixel 7 · Android 14 · live"   ← 10px, white bg/70%
+    Tap indicators: indigo ripple at each agent tap, 200ms
+    
+    Current action bar (bottom of device frame):
+      "Tapping: Export button"                       ← 12px, white, bg-black/60%
+      Updates in real-time with each agent action
+
+  Device switcher (below frame, icon row):
+    [Pixel 7 ●]  [iPhone 15]  [Tablet]  [+ Add device]
+    Active device has indigo dot
+
+─────────────────────────────────────────────────
+RIGHT PANEL — AGENT ACTIVITY
+
+  SCENARIO QUEUE (top 60% of panel):
+
+    Header row:
+      Running: Scenario 7 of 23                     ← 13px semibold, slate-700
+      ✓ 6 passed  ● 1 running  ○ 5 queued  — 11 remaining
+      
+    Scenario list (scrollable):
+      ✓ Scenario 1   Export 500 rows                emerald row, checkmark
+      ✓ Scenario 2   Export 5,000 rows              emerald row
+      ✓ Scenario 3   Empty export                   emerald row
+      ✓ Scenario 4   Cancel mid-export              emerald row
+      ✓ Scenario 5   Export with filters            emerald row
+      ✓ Scenario 6   Auth token expired             emerald row
+      ● Scenario 7   Export 10,000 rows             indigo row, pulse dot
+      ○ Scenario 8   Timeout at 30s                 slate row, dimmed
+      ○ Scenario 9   Special characters in field    slate row, dimmed
+      ○ Scenario 10  Unicode field names [added]    slate row, dimmed + "added" chip
+      
+    Each scenario row:
+      Left: status icon (✓ / ● / ○)
+      Centre: scenario name
+      Right: [screenshot] icon if completed — taps to open
+      On hover (completed): preview thumbnail appears
+      On tap (completed): opens screenshot/video in evidence panel
+
+  CHAT (bottom 40% of panel):
+
+    Thread, scrollable, newest at bottom:
+      
+      [PM]  14:23  did you test with unicode in field names?
+      [QA]  14:23  Not yet. Adding as Scenario 10. Queued
+                   after current run.
+      [PM]  14:24  also test cancel mid-export
+      [QA]  14:22  Already covered — Scenario 4. Passed.
+                   [screenshot →]
+      [PM]  14:25  what about timeout?
+      [QA]  14:25  Scenario 8 is queued. Runs next.
+
+    Input bar (bottom):
+      [Ask the QA agent...]                [Send]
+      "Add a test case or ask what's been covered"  ← placeholder subtext
+
+─────────────────────────────────────────────────
+BOTTOM STATUS BAR (full width, below both panels)
+
+  ✓ 6 passed   ● 1 running   ○ 16 queued   ✗ 0 failed
+  
+  [Add scenario]   [Pause]   [Approve when complete]
+
+  "Approve when complete": sets auto-merge if all pass with no failures.
+  PM can walk away. Gets notified only if something fails.
+
+─────────────────────────────────────────────────
+NOW WATCHING BAR INTEGRATION
+
+  While live QA runs in background:
+  ● QA running · 7 of 23 · Export 10k    [Watch live →]
+  
+  On failure:
+  ✗ QA failed · Scenario 12 · Timeout    [See failure →]  ← amber bar
+
+─────────────────────────────────────────────────
+QA TEAM JOIN FLOW
+
+  QA engineer opens same session via shared link or workspace.
+  They see identical live view.
+  They can type in the same chat.
+  Their questions are answered by the same agent.
+  "Already covered" responses cite trace evidence directly.
+  
+  No handoff. No PDF. No Jira ticket. Same session.
+
+─────────────────────────────────────────────────
+TRUST MOMENT DESIGN
+
+  The trust is not in the report. It is in the watching.
+  
+  PM experience:
+    "I watched it tap Export on the device.
+     I saw the row count hit 10,000 and it didn't break.
+     I added two edge cases mid-run. Both passed.
+     I approved the merge."
+  
+  This is the same trust as watching Apur test on his phone —
+  except the QA agent ran 23 scenarios without anyone asking.
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+
+1. The device mirror is live, not recorded.
+   Trust comes from watching, not from believing.
+
+2. Chat never pauses the agent.
+   Questions answered inline. Queue updated without interruption.
+
+3. "Already covered" cites the specific scenario and screenshot.
+   Not "yes that was tested." → "Scenario 4. Passed. [screenshot →]"
+
+4. Approve when complete is opt-in only.
+   Never default. PM always makes the final call unless they set it.
+
+5. Failed scenarios are never hidden.
+   If Scenario 12 fails, it is the first thing visible. Red. Immediate.
+   No softening. No "4 issues found" euphemism.
+```
+
+---
+
+## SCREEN 18 — TASK INITIATION BRIEF + PLAYBOOKS
+
+```
+Concept: Before any task is delegated to Artisan, a 4-field brief is captured.
+This brief becomes the task's trace header — cited in every QA question,
+every report tab, every release. Recurring work becomes a Playbook: a frozen
+brief that runs with one tap. The longer you use Artisan, the less you explain.
+
+─────────────────────────────────────────────────
+TASK INITIATION BRIEF — THE 4-FIELD FORM
+
+  Triggered when PM taps [New task] or [Delegate to Artisan]
+  
+  Appears as a bottom sheet (not a modal, not a new page):
+    slides up 60% of viewport, backdrop blur, dismissible
+
+  Header:
+    "What are we doing?"                          ← 18px semibold, slate-900
+    4 fields. Artisan fills what it can from context.
+
+  FIELD 1: What
+    Label: "What are we doing?"
+    Pre-filled if possible from context:
+      "Fix export bug — rows > 5,000 cause crash"
+    Editable single line, 16px, slate-900
+
+  FIELD 2: Why
+    Label: "Why does it matter?"
+    Pre-filled if possible:
+      "Sprint ends Friday. Meera is blocked."
+    Editable single line
+
+  FIELD 3: Where
+    Label: "Where does it live?"
+    Pre-filled from detected context:
+      "Linear #EXP-441 · ExportHandler.go · Figma frame [link]"
+    Multi-source chips: each source is a removable chip
+    [+ Add source] for manual additions
+
+  FIELD 4: Done when
+    Label: "Done when?"
+    Not pre-filled — always requires PM input:
+      placeholder: "e.g. PR merged and passes emulator on Pixel 7"
+    This becomes the QA pass condition.
+    If left blank, Artisan asks before starting.
+
+  Footer:
+    [Start →]      [Save as Playbook]
+
+─────────────────────────────────────────────────
+PLAYBOOKS VIEW (accessible from workspace sidebar)
+
+  What Playbooks are:
+    Frozen task briefs for recurring work.
+    One tap to run. Artisan fills the Where from current context.
+    The brief is the Playbook — nothing else to configure.
+
+  Layout: card grid (2 columns, 280px cards)
+
+    Each Playbook card:
+      Icon (auto-assigned from task type)
+      Title: "Weekly sprint review"              ← 14px semibold
+      Last run: "3 days ago"                     ← 12px, slate-400
+      Run count: "Used 12 times"                 ← 12px, slate-400
+      Status chip: [Active] / [Draft]
+      
+      [Run now →]   [Edit]   [···]
+      
+    Special card: [+ New Playbook]
+      Dimmed, dashed border, centred + icon
+
+  Playbook examples (seeded by persona):
+    PM:       "Weekly sprint review", "Stakeholder status email",
+              "Ticket triage from Linear backlog"
+    Designer: "Design review against component library",
+              "Ship approved frame to staging"
+    Analyst:  "Weekly pipeline report", "Predict next week's numbers"
+
+─────────────────────────────────────────────────
+RESUME WITHOUT RE-EXPLAINING
+
+  When a task is interrupted and resumed:
+
+    Task card in workspace shows:
+      [Export fix — Export 10k rows]
+      Paused 2 hrs ago · QA at Scenario 7       ← 12px, slate-500
+      [Resume →]
+
+    Resume tap: re-opens exactly where left off.
+      Live QA agent picks up from Scenario 7.
+      Brief is loaded — no re-entry.
+      Chat history intact.
+
+    Now Watching bar while paused:
+      ○ Paused · Export fix · Scenario 7 of 23   [Resume →]
+
+─────────────────────────────────────────────────
+BRIEF → TRACE HEADER CONNECTION
+
+  Once a task brief is submitted, it becomes the trace header
+  for everything that follows:
+
+    Every QA question: "Context: Sprint ends Friday. Meera blocked."
+    Every report tab header: shows the brief fields as metadata
+    Release AI Assistant: references "Done when" as the pass condition
+    Engineer handoff: brief is the first thing shown
+
+  This is why "Done when" is required. It IS the QA pass condition.
+  If it's blank, nothing else knows when to stop.
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+
+1. "Done when" is never skipped.
+   If PM leaves it blank, Artisan prompts before starting.
+   "What does done look like? This is your QA pass condition."
+
+2. Where is always pre-filled from context.
+   Artisan reads Linear, Figma, Notion before showing the form.
+   PM confirms, not enters.
+
+3. Playbooks run from one tap.
+   No configuration screen. The saved brief IS the Playbook.
+   Artisan fills Where from current context at run time.
+
+4. Resume is always available.
+   No task is ever "lost." Paused state persists indefinitely.
+   Now Watching bar shows paused tasks, not just active ones.
+
+5. The brief is the contract.
+   Every downstream artifact (trace, QA report, handoff) cites it.
+   Changing the brief mid-task creates a new trace entry.
+```
+
+---
+
+## CONNECTIVE THREADS — UPDATED (v1.2)
+
+```
+The following 7 threads connect all 18 screens into a single system:
+
+THREAD 1 — THE NOW WATCHING BAR
+  Persistent bottom bar. Present on every screen after onboarding.
+  States: active task / QA running / paused / watching inbox / stuck
+  Never empty. Taps into the relevant screen.
+
+THREAD 2 — THE BELIEF ARC (B0 → B5)
+  Screen 1: B0 — "AI can't do my real work"
+  Screen 2: B1 — "It knows my tools"
+  Screen 3/4: B2 — "It surfaced something I missed"
+  Screen 5: B3 — "It drafted something I'd have written"
+  Screen 7/16/17: B4 — "I review its work instead of doing it myself"
+  Screen 10B/11: B5 — "I am a different professional now"
+
+THREAD 3 — THE CONTEXT THREAD
+  Every screen shows what Artisan knows.
+  Scan → Interview → Brief → Trace → KB buckets → RS context score.
+  Context compounds. It never resets.
+
+THREAD 4 — THE BUD THREAD
+  Every task connects to a bud.
+  Bud grows through use.
+  IS is measured per session.
+  Compound buds emerge at mastery.
+
+THREAD 5 — THE TRUST THREAD
+  Trust markers on every card. ● / ◐ / ○ — always.
+  Flowchart → Annotated diff → Engineer handoff.
+  QA agent → Live device → Approved merge.
+  Each layer adds evidence. Nothing is asserted without citation.
+
+THREAD 6 — THE TRACE THREAD
+  Every action generates a trace.
+  Brief → Fix → QA run → Approval → Production metrics.
+  Release AI Assistant answers any question from trace evidence.
+  Zero-question releases are the KPI.
+
+THREAD 7 — THE DUAL TRACK THREAD
+  RS and IS are always visible (paired, equal weight).
+  D90 shows honest math.
+  Track A or B is always the user's choice.
+  Graduation is celebrated quietly.
+  Reliance is chosen, not imposed.
+```
+
+---
+
+*Artisan Design Prompt v1.2 — June 2026*
+
+**18 screens. 7 connective threads. One system.**
+
+Feed this entire document to Claude Design. Build all screens as a connected system.
+The Now Watching bar, the trust markers, and the belief arc must be consistent across every screen.
+Do not design any screen in isolation.
+
+**Screen index:**
+```
+01  First Launch                    09  Release AI Assistant
+02  Scan (Recognition)              10  D90 Assessment + Graduation
+03  Interview                       11  Capability Gap Assessment
+04  Genie Moment                    12  Track Selection (Two Contracts)
+05  Personalization                 13  Coaching Curriculum per Bud
+06  Artisan Workspace               14  IS Score in Workspace
+07  Ship Mode                       15  Release Intelligence System
+08  Bud Board (Skill Constellation) 16  Fix Abstraction Layer (Ubiquitous Language)
+                                    17  Live QA Agent
+                                    18  Task Initiation Brief + Playbooks
+```
