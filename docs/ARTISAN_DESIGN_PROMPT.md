@@ -2047,4 +2047,1508 @@ Do not design any screen in isolation.
 08  Bud Board (Skill Constellation) 16  Fix Abstraction Layer (Ubiquitous Language)
                                     17  Live QA Agent
                                     18  Task Initiation Brief + Playbooks
+
+PM CODE SHIPPING JOURNEY (Screens 19–30)
+19  Feasibility Card                25  Live Build Feed + Decision Log
+20  Requirements Discovery          26  Self-Correction Summary
+21  Data Discovery                  27  PM Correction Loop (Emulator)
+22  Spec Card                       28  Evidence Stack (Fear Cards)
+23  Handoff Decision Point          29  Safety Net
+24  Engineer Review Card            30  Ship Moment
+
+POST-SHIP + ONGOING (Screens 31–40)
+31  Deploy Confirmation + First User   36  Comparative Performance
+32  24h Performance Report             37  Impact Attribution (14 days)
+33  Error Alert + Rollback             38  PM Portfolio
+34  Regression Detection               39  Stakeholder Card (shareable)
+35  Dependency Health                  40  Learning Card
+
+STAKEHOLDER TRUST VIEWS (Screens 41–46)
+41  Engineering Manager View       44  Business Manager View
+42  QA Manager View                45  Design Lead View
+43  Developer View                 46  On-Call Engineer View
+```
+
+---
+
+## THE PM CODE SHIPPING JOURNEY
+
+```
+Trust is built in sequence. You cannot skip rungs.
+
+Rung 1  UNDERSTANDING    "I know what it's building"        → Screens 19–22
+Rung 2  APPROACH         "I know how it's thinking"         → Screen 23–24
+Rung 3  SIGHT            "I can see it working"             → Screens 25–27
+Rung 4  EVIDENCE         "I have proof it works"            → Screen 28
+Rung 5  SAFETY           "I know the exit if it breaks"     → Screen 29
+Rung 6  OWNERSHIP        "I chose to ship this"             → Screen 30
+```
+
+---
+
+## SCREEN 19 — FEASIBILITY CARD
+
+```
+Trigger: PM types or speaks a feature idea. Before the brief form.
+Purpose: Artisan proves 60% already exists. Converts "1000 lines" fear
+         into "180 new lines." Sets expectation before commitment.
+
+Layout: Card, max-width 560px, centred, white bg, shadow-lg, rounded-2xl
+
+─────────────────────────────────────────────────
+HEADER
+  "Can we build this?"                          ← 22px semibold, slate-900
+  Expert Picks                                  ← 14px, slate-500
+
+COMPLEXITY SIGNAL
+  ████████████████░░░░  Level 2 of 5            ← bar + label
+  "Similar to FeaturedBrands (March 14).
+   Same pattern. Took 5 min. 0 regressions."   ← comparison to past build
+
+WHAT'S ALREADY DONE
+  ✓ Recommendations API   exists, stable (v2.3)
+  ✓ Card component        in your design system
+  ✓ WishlistButton        built, tested
+  "Artisan is building on existing work.
+   Not starting from scratch."
+
+WHAT'S NEW
+  · ExpertPicksStrip    ~180 lines (new component)
+  · editorial_score     first time exposed to frontend
+  Estimated new code:   ~180 lines of 1,040 total (17%)
+
+RISK SIGNAL
+  ◐ editorial_score never used in frontend
+    "Low risk. Null-safe fallback will be added."
+
+ESTIMATE
+  Build time:      4–6 minutes
+  Engineer needed: No (optional review available)
+
+CTA ROW
+  [Brief it →]    [I want engineer review from the start]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "What's already done" always leads. Fear reduction before excitement.
+2. Complexity is Level 1–5, not high/medium/low. Numbered = specific.
+3. Past similar build is always cited when one exists. Familiarity = trust.
+4. Estimated new lines shown. Not total lines. New lines only.
+```
+
+---
+
+## SCREEN 20 — REQUIREMENTS DISCOVERY
+
+```
+Purpose: Artisan proves it understood most of it from context.
+Asks only what it genuinely cannot determine. Max 3 questions.
+Feels like: "smart colleague who read the brief before the meeting."
+
+Layout: Single column, max-width 560px
+
+─────────────────────────────────────────────────
+HEADER
+  "A few things I'm not sure about."            ← 20px semibold, slate-900
+  "I've already pulled what I could from context." ← 13px, slate-500
+
+WHAT I ALREADY KNOW (from context — shown first)
+  ● Expert Picks goes on the home screen
+    Source: Figma frame HP-07 · verified
+  ● Using existing Recommendations API
+    Source: Linear EXP-441 · verified
+  ● Users can save picks to wishlist
+    Source: PRD section 4.2 · inferred ◐
+
+QUESTIONS (max 3, one at a time or all visible)
+
+  Q1  "Who curates the 'expert' picks?"
+      [Editorial team]  [Algorithm]  [Both]  [I'll decide]
+
+  Q2  "What happens if there are no picks to show?"
+      [Hide the section]  [Show placeholder]  [Your call]
+
+FOOTER
+  "These are the only things I need.
+   Everything else I'll decide and tell you."   ← 12px, slate-400
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "What I already know" always appears before questions.
+   Artisan demonstrates competence before asking for help.
+2. Maximum 3 questions. If more are needed, Artisan makes
+   a decision and flags it in the spec for PM to override.
+3. "Your call" is always an option. PM can delegate any decision.
+4. Each question is one tap — not open text. Faster, lower friction.
+```
+
+---
+
+## SCREEN 21 — DATA DISCOVERY
+
+```
+Purpose: Artisan reads the Figma frame. Maps every visual element
+to a data source. Surfaces unresolved ones before build starts.
+This catches bugs before a line is written.
+
+Layout: 2-panel. Left: annotated Figma. Right: data resolution panel.
+
+─────────────────────────────────────────────────
+LEFT PANEL (55%) — ANNOTATED FIGMA FRAME
+
+  Figma frame rendered, read-only, full fidelity.
+  Numbered dots on each data-bearing element:
+    ①  Product image
+    ②  Product title
+    ③  Expert name
+    ④  Expert score          ← amber dot: needs PM input
+    ⑤  Save button state
+    ⑥  "Trending" badge      ← red dot: doesn't exist
+
+  Tapping a dot → highlights matching row in right panel
+
+RIGHT PANEL (45%) — DATA RESOLUTION
+
+  Header row:
+    6 needed  ✓ 3 resolved  ⚑ 1 question  ✗ 1 missing  ◐ 1 inferred
+
+  RESOLUTION ROWS (one per data point):
+
+  ① Product image
+     product_thumbnail_url · ProductAPI.getById()
+     ● Used in 14 existing places — reusing
+     "Zero extra API cost."
+
+  ② Product title
+     product_name · ProductAPI.getById()
+     ● Same call as ①. No additional request.
+
+  ③ Expert name
+     editorial_author.display_name · CMS schema
+     ◐ Inferred — never used in frontend before
+     "Is this the right field?"
+     [Yes]  [Different field]  [I'll check]
+
+  ④ Expert score
+     ⚑ NEEDS YOUR CALL — two candidates:
+     recommendation_score  → powers Similar Items
+     editorial_score       → in CMS, never exposed
+     "These are different things. Which is expert score?"
+     [recommendation_score]  [editorial_score]  [Both]
+
+  ⑤ Save button state
+     wishlist_item_ids[] · WishlistAPI.getUserItems()
+     ● Already fetched on home screen — reusing same call
+     ⚑ Dependency note: 2 other components use this endpoint
+     [Reuse shared ← recommended]  [Separate call]
+
+  ⑥ Trending badge
+     ✗ DOESN'T EXIST in API or CMS
+     "I see it in Figma. No data source found."
+     [Omit from this build]
+     [Stub it — backend creates later]
+     [Define as: editorial_score > 85]
+
+─────────────────────────────────────────────────
+FOOTER (after all resolved)
+  [Everything resolved → Continue to spec]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Every Figma element with data gets a dot. No unmapped elements.
+2. The "DOESN'T EXIST" row is shown in red, never softened.
+3. Dependency consequences shown for reuse decisions.
+   "2 other components use this" = explicit, always.
+4. PM can't proceed with unresolved ⚑ items.
+   They must make a call or delegate ("your call") to Artisan.
+```
+
+---
+
+## SCREEN 22 — SPEC CARD
+
+```
+Purpose: Artisan builds the spec from brief + discovery.
+PM confirms before a single line is written.
+Every line is editable. This is the cheapest correction moment.
+
+Layout: Single column, card, scrollable
+
+─────────────────────────────────────────────────
+HEADER
+  Expert Picks                                  ← 24px semibold
+  "Confirm before I start. Every line is editable." ← 13px, slate-500
+
+USER STORY (editable)
+  "As a home screen visitor, I want to see expert-
+   curated picks so I can discover high-quality
+   products I'd trust."
+
+ACCEPTANCE CRITERIA (numbered, each tappable to edit)
+  1. Strip renders on home screen, position 3
+  2. Loads in < 1.2s on 4G connection
+  3. Shows editorial picks (from CMS) when available,
+     algorithmic (recommendation_score) as fallback
+  4. Each pick: image, title, expert name, save button
+  5. Trending badge: editorial_score > 85 (Meera's call)
+  6. Empty state: section hidden
+  7. Passes on Pixel 7, iPhone 15, iPad
+
+OUT OF SCOPE (explicit — Artisan generated)
+  ✗ Existing product cards
+  ✗ Checkout flow
+  ✗ Login / auth
+  ✗ Payment processing
+  ✗ 31 other files [expand to see list]
+
+OPEN DECISIONS ARTISAN WILL MAKE
+  · Animation: will use existing fade-in from Hero section
+  · Card width: will match ProductCard (168px)
+  · Error handling: null-safe fallback on editorial_score
+  "These are my defaults. Tap any to override."
+
+DATA SOURCES (from Screen 21)
+  product_name/image  → ProductAPI.getById()      ✓
+  expert_name         → editorial_author (CMS)    ✓
+  expert_score        → editorial_score           ✓
+  save state          → WishlistAPI shared call   ✓
+  trending            → score > 85 rule           ✓
+
+CTA ROW
+  [This is right — start building →]  [Change something]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "Out of scope" list is always visible, never collapsed by default.
+   The PM's regression fear is answered before build starts.
+2. Every acceptance criterion is numbered. PM can say
+   "change criterion 3" and Artisan knows exactly what.
+3. Data sources shown in full — PM can see the data map they built.
+4. "Start building" is blocked until all ⚑ data items are resolved.
+```
+
+---
+
+## SCREEN 23 — HANDOFF DECISION POINT
+
+```
+Purpose: After spec is confirmed, PM chooses who owns the build.
+This is a routing screen, not a settings screen. Three honest paths.
+
+Layout: Three option cards, vertically stacked
+
+─────────────────────────────────────────────────
+HEADER
+  "Ready to build. Who should own this?"        ← 20px semibold, slate-900
+  Expert Picks · Level 2 · Est. 4–6 min         ← context strip
+
+OPTION CARDS (tap to select, then Proceed)
+
+  ┌─────────────────────────────────────────────┐
+  │ ◉  Artisan builds                [selected] │
+  │    I build it. You review. No engineer.     │
+  │    Est. 4–6 min                             │
+  └─────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────┐
+  │ ○  Engineer reviews spec first, I build     │
+  │    I send Apur the spec + approach.         │
+  │    Build starts when he approves.           │
+  │    Est. +30 min (depends on Apur)           │
+  └─────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────┐
+  │ ○  Engineer builds, I assist                │
+  │    Full context handed to Apur.             │
+  │    He builds. I answer questions + test.   │
+  └─────────────────────────────────────────────┘
+
+ARTISAN SIGNAL (only shown when confidence is high)
+  "Artisan recommends: Artisan builds
+   Confidence: High · No critical path touches
+   Similar to FeaturedBrands build (March 14)"  ← 12px, slate-500
+
+  [Proceed →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. No default is pre-selected unless Artisan has high confidence.
+   Low-confidence builds: no recommendation, PM chooses freely.
+2. Time estimate shown for each path. Honest about engineer wait time.
+3. Artisan's recommendation shown as signal, not pressure.
+   PM can always choose a different path with zero friction.
+```
+
+---
+
+## SCREEN 24 — ENGINEER REVIEW CARD
+
+```
+Purpose: What the engineer sees when PM asks for spec review.
+Everything needed to make a decision, nothing extra.
+Sent to engineer's workspace (or Slack integration).
+
+Layout: Card, max-width 600px (designed for Slack/email embed too)
+
+─────────────────────────────────────────────────
+HEADER
+  [ARTISAN → APUR]                    10:23 AM
+  "Meera asked if you'd review this before build.
+   No urgency — build waits until you respond."
+
+FEATURE SUMMARY
+  Feature:    Expert Picks
+  What:       Horizontal strip on home screen,
+              editorial + algorithmic picks, save to wishlist
+  New files:  2 (ExpertPicksStrip, ExpertPicksCard)
+  Modified:   1 (HomeScreen.tsx, +3 lines)
+  New code:   ~280 lines estimated
+
+APPROACH (flowchart, 4 nodes)
+  [Home Screen] → [ExpertPicksStrip] → [ExpertPicksCard] → [WishlistButton]
+
+DATA SOURCES CONFIRMED
+  product data    → ProductAPI.getById()        ✓ Meera confirmed
+  expert_name     → editorial_author (CMS)      ✓
+  expert_score    → editorial_score             ✓ Meera chose this
+  save state      → WishlistAPI.getUserItems()  ✓ shared call
+  trending badge  → score > 85 rule             ✓ Meera's call
+
+ARTISAN CONFIDENCE
+  ████████████████░░░░ High
+  "No critical path touches. Data confirmed.
+   Approach matches existing scroll patterns."
+
+KNOWN RISKS (honest)
+  · editorial_score never exposed to frontend
+    (Artisan will add null-safe fallback)
+  · WishlistAPI shared — 2 other components affected
+
+RESPONSE OPTIONS
+
+  [✓ Looks good — build it]
+
+  [Suggest a change]             ← opens inline comment on any line
+  [Flag a concern]               ← routes back to PM + Artisan
+  [I'll build this myself →]     ← engineer takes over
+
+─────────────────────────────────────────────────
+RESPONSE PATHS:
+
+PATH A — "Looks good":
+  Build starts. PM notified: "Apur approved. Building now."
+  Trace entry: "Spec reviewed: Apur Sharma · Approved · 10:31 AM"
+
+PATH B — "Suggest a change":
+  Engineer comments inline. Artisan updates spec.
+  PM sees delta (before/after, 2 lines). Confirms. Build starts.
+  Trace entry: "Spec modified: Apur Sharma · change cited"
+
+PATH C — "Flag a concern":
+  Routes to PM + Artisan simultaneously. Three options shown.
+  PM decides. Build proceeds or holds.
+  Trace entry: "Concern flagged: Apur Sharma · PM decision logged"
+
+PATH D — "I'll build this myself":
+  Full context auto-loaded for engineer. Artisan moves to assist.
+  PM sees: "Apur is building Expert Picks. Artisan is assisting."
+  Every line attributed: engineer-written vs. Artisan-generated.
+  Trace records who did what throughout.
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Build waits — clearly stated at top of card. No pressure to respond.
+2. "Flag a concern" routes to PM, not just Artisan.
+   Concerns are the PM's decision, not Artisan's.
+3. In Path D: attribution is line-level.
+   "Engineer wrote" vs. "Artisan generated" is always visible.
+```
+
+---
+
+## SCREEN 25 — LIVE BUILD FEED + DECISION LOG
+
+```
+Purpose: While code is being generated, PM sees work happening —
+in business language, not function names. Converts the black box
+into a visible process. Watching competent work = trust.
+
+Layout: Single column, live feed, newest entry at top
+
+─────────────────────────────────────────────────
+HEADER
+  Building Expert Picks                         ← 20px semibold
+  ████████████████░░░░ 71%    ~18 seconds left  ← progress bar
+
+LIVE NUMBERS (update every few seconds)
+  New lines written:    247    Reused: 741 (75%)
+  Files touched:        3      Files untouched: 844
+  Custom CSS:           0      Token overrides: 0
+
+DECISION LOG (live feed, newest first)
+
+  ◎ Trying approach B for scroll behaviour      ← IN PROGRESS, indigo pulse
+    "Approach A conflicted with sticky header
+     at scroll depth > 200px. Switching."
+    [Why approach A failed →]                   ← expandable
+
+  ✓ Empty state: section hidden                 ← DONE, emerald
+    "Per spec. Matches your FeaturedBrands
+     empty state pattern."
+
+  ✓ Animation: fade-in, 200ms                  ← DONE
+    "Reused from Hero section. No custom CSS."
+
+  ✓ Card width: 168px                          ← DONE
+    "Matched ProductCard. 0 token overrides."
+
+  ⚑ editorial_score fallback added             ← DECISION, tappable
+    "Null-safe. Falls back to recommendation_
+     score when editorial_score is absent.
+     Tested in Scenario 7."
+    [Override this →]                           ← PM can redirect
+
+WHAT I FIXED MYSELF                            ← collapsed, expandable
+  3 self-corrections — tap to see
+  [▸ Show]
+
+─────────────────────────────────────────────────
+DECISION ROW TYPES:
+  ◎ IN PROGRESS  indigo pulse dot
+  ✓ DONE         emerald check
+  ⚑ DECISION     amber — PM can override, or ignore to accept default
+  ✗ SELF-FIXED   shown in collapsed "What I fixed myself" section
+
+NON-NEGOTIABLES
+1. Business language only in the log. No function names, no file paths.
+   File paths available behind "tap to expand" on every row.
+2. ⚑ DECISION rows are not prompts — PM does not have to respond.
+   Silence = acceptance. Tap = redirect.
+3. Progress bar never jumps backward. If a self-correction
+   adds time, the bar slows — it does not regress.
+4. "What I fixed myself" is always present but never auto-expanded.
+   The PM can choose to see it. It is never hidden permanently.
+```
+
+---
+
+## SCREEN 26 — SELF-CORRECTION SUMMARY
+
+```
+Purpose: After build, before evidence stack. The most important
+trust screen in the entire journey. Artisan shows everything
+it caught and fixed without PM intervention.
+
+This is the B4 belief moment: "I review its work
+instead of doing it myself" — because it already reviewed itself.
+
+Layout: Single column, dark surface card + light sub-cards
+
+─────────────────────────────────────────────────
+HEADER (bg-slate-900, rounded-2xl, p-6)
+  "Here's what happened while you weren't looking." ← 22px semibold, white
+  "Everything I caught and fixed before you saw it." ← 14px, slate-400
+
+SELF-CORRECTIONS (3)
+
+  Each row: emerald check + title + explanation
+  ─────────────────────────────────────────────────
+  ✓ Card title overflow at 32 characters
+    "My first version truncated at 24. Caught it
+     against the acceptance criteria. Fixed to 32."
+    Source: spec criterion 4 · verified ●
+
+  ✓ editorial_score → null on non-editorial products
+    "The null-safe fallback wasn't triggering.
+     Caught in my own test run. Fixed before QA."
+    Source: Artisan test run · Scenario 7 · verified ●
+
+  ✓ Approach A broke scroll at depth > 200px
+    "Caught in emulator run before first render.
+     Switched to Approach B. You saw Approach B."
+    Source: emulator rehearsal · verified ●
+
+DECISIONS I MADE FOR YOU (5) — collapsed by default
+  [▸ Show 5 decisions]
+  · Animation: fade-in 200ms  · Card width: 168px
+  · Trending: score > 85      · Test coverage: 89%
+  · Token compliance: 100%
+
+YOUR CORRECTIONS (from emulator loop) (8)
+  · Title: 16px → 14px
+  · Expert name: default → slate-500
+  · Card height: 220px → 248px
+  [▸ Show 5 more]
+
+  "These 8 corrections have been noted.
+   The next similar build will need fewer."      ← 12px, slate-400, italic
+
+CTA
+  [See evidence →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Self-corrections are NEVER framed as failures.
+   Frame: "I checked my own work. I found 3 things. I fixed them."
+   Not: "I made 3 mistakes."
+2. Every self-correction cites its source (spec criterion, test run, emulator).
+   Not assertion — evidence.
+3. PM corrections are shown and acknowledged as taste data.
+   "The next build will need fewer" closes the skill loop.
+4. This screen cannot be skipped. It is the trust moment.
+```
+
+---
+
+## SCREEN 27 — PM CORRECTION LOOP (EMULATOR)
+
+```
+Purpose: PM sees the first render and directs changes in real-time.
+Each correction is a data point for the Ship Bud's taste model.
+Trust is built by the speed and accuracy of each correction cycle.
+
+Layout: Left: device emulator (live). Right: correction chat.
+
+─────────────────────────────────────────────────
+LEFT PANEL — DEVICE MIRROR (live, first render)
+  Device frame: Pixel 7
+  Live render of ExpertPicksStrip on home screen
+  Tap indicators on any element → voice/type correction
+
+RIGHT PANEL — CORRECTION THREAD
+
+  Artisan: "First render ready. Pixel 7, portrait."
+           [screenshot thumbnail]
+
+  PM:      "The card title is too big."
+  Artisan: "Changing 16px → 14px."
+           [renders in 2.3s]
+           "Done. Still readable at 3 cards visible." ← proactive check
+
+  PM:      "Expert name should be grey."
+  Artisan: "Using slate-500. Matches your
+            author byline in BlogCard."
+           [renders in 1.8s]
+
+  PM:      "Cards feel a bit short."
+  Artisan: "Going from 220px → 248px.
+            Checking scroll behaviour..."
+           [renders in 3.1s]
+           "Height works. No clip on 3-card view."
+
+  PM:      [40 seconds silence, scrolling]
+  Artisan: [waits — no prompt, no "Are you happy?"]
+
+  PM:      "That's it."
+  Artisan: "Noted. 8 corrections logged for
+            your Ship Bud calibration."
+
+─────────────────────────────────────────────────
+BOTTOM BAR
+  Correction 5 of session    Ship Bud: learning   [Done →]
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Artisan never prompts during silence. PM thinks at their own pace.
+2. Every correction gets a proactive downstream check.
+   "Cards 1px taller — scroll still works" is always verified.
+3. Speed target: < 3 seconds per correction cycle.
+   If slower, show "rendering..." — never a frozen screen.
+4. Artisan cites pattern source for every decision.
+   "Matches BlogCard" anchors to the existing system, not invention.
+5. Correction count shown but never as pressure.
+   "Correction 5" not "5 corrections so far."
+```
+
+---
+
+## SCREEN 28 — EVIDENCE STACK (FEAR CARDS)
+
+```
+Purpose: After build and corrections — four cards, each answering
+one specific PM fear. PM reads top to bottom and stops when satisfied.
+Nobody reads all four on a good day.
+
+Layout: Four expandable cards, vertically stacked
+
+─────────────────────────────────────────────────
+HEADER
+  "Expert Picks is ready."                      ← 22px semibold, slate-900
+  "Here's the evidence."                        ← 14px, slate-500
+
+FEAR CARD 1 — "Does it look right?"
+  [expanded by default]
+  Figma spec vs. implementation:    0px deviation
+  Figma frame: HP-07 v3.2          ↔  [side-by-side →]
+  Token overrides:                  0
+  Hardcoded values:                 0
+  Breakpoints: Mobile ✓  Tablet ✓  Desktop ✓
+
+FEAR CARD 2 — "Does it work?"
+  [expanded by default]
+  QA scenarios:   23   ✓ 23 passed   ✗ 0 failed
+  Devices:        Pixel 7 ✓   iPhone 15 ✓   iPad ✓
+  Load time:      0.87s   (target: < 1.2s) ✓
+  [Watch QA run →]
+
+FEAR CARD 3 — "Did it break anything?"
+  [collapsed — expands on tap]
+  Regression suite:    47 tests   ✓ 47 passed
+  Files touched:       3 of 847   (844 untouched)
+  Critical paths:      Login ✓  Checkout ✓  Payment ✓
+
+FEAR CARD 4 — "Is the code good?"
+  [collapsed]
+  Reuse ratio:         75%   (Artisan wrote 247 new lines)
+  Test coverage:       89%   (standard: 80%)
+  Custom CSS:          0
+  Pattern compliance:  100%  (matches FeaturedBrands)
+  Self-corrections:    3     [see what was fixed →]
+  Spec reviewer:       Apur Sharma · approved · 10:31 AM
+
+CTA ROW
+  [See safety net →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Cards 1 and 2 are expanded by default.
+   PM sees visual proof and QA result immediately.
+2. Cards 3 and 4 collapsed — regression and code quality
+   for the PM who wants to go deeper.
+3. "Did it break anything?" uses the word "anything" — wide frame.
+   PM's fear is broad. The answer must match that breadth.
+4. Every number has a source. No assertion without citation.
+```
+
+---
+
+## SCREEN 29 — SAFETY NET
+
+```
+Purpose: PM needs to see the exit before approving the entry.
+This screen exists because no feature ships without a rollback plan.
+Calm register. Not a warning. A promise.
+
+Layout: Single column, white bg
+
+─────────────────────────────────────────────────
+HEADER
+  "Before you ship — your safety net."          ← 20px semibold, slate-900
+
+FEATURE FLAG (primary safety)
+  Expert Picks is behind: expert_picks_v1        ← monospace chip, slate-900
+  Toggle off: 2 clicks. 2 seconds. No deploy.   ← the key line
+  Users see previous home screen instantly.
+  No engineer required.                         ← critical for PM confidence
+
+ROLLBACK (secondary safety)
+  If the flag isn't enough:
+  Full rollback in 90 seconds.
+  Artisan handles it. One button.
+  [See rollback plan →]
+
+WHO KNOWS
+  On-call this week:   Apur Sharma               ← from calendar context
+  Artisan will page:   if error rate > 0.1%
+  You'll see:          alert in Now Watching bar first
+
+WHAT ARTISAN WATCHES (72 hours)
+  ◎ Error rate    alert if > 0.1%
+  ◎ Load time     alert if > 1.5s
+  ◎ Impressions   report at 24h
+  ◎ Save rate     report at 72h
+
+CTA ROW
+  [Ship it →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "No engineer required" must appear on this screen.
+   The PM's exit must be self-service.
+2. Threshold for alert (0.1%) is always shown.
+   PM knows what triggers a page, not just "Artisan is watching."
+3. On-call engineer named from real context.
+   "Apur Sharma" not "your on-call engineer."
+4. This screen cannot be skipped.
+```
+
+---
+
+## SCREEN 30 — SHIP MOMENT
+
+```
+Purpose: A moment of ownership. Not a confirmation dialog.
+PM shipped something. That is a professional milestone.
+Calm. Factual. Transferring ownership without transferring blame.
+
+Layout: Full screen, dark surface (bg-slate-950), centred
+
+─────────────────────────────────────────────────
+[centred, vertically centred, maximum 6 lines]
+
+  You're shipping Expert Picks.                 ← 32px semibold, white
+
+  23 scenarios passed.                          ← 16px, slate-300, mt-4
+  47 regressions clear.
+  Feature flag is live.
+  Apur reviewed the spec.
+
+
+  This is yours.                                ← 14px, slate-400, italic, mt-6
+
+
+              [Ship it →]                       ← indigo-600, large, centred, mt-8
+
+
+  "Artisan monitors for 72 hours.               ← 11px, slate-500, bottom
+   You'll hear from us only if something
+   needs attention."
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "This is yours." — two words. They transfer ownership.
+   Not credit ("you built this") and not disclaimer ("AI built this").
+   The PM made the decisions. This is the consequence.
+2. No animation beyond the page load. No confetti. No sound.
+3. The four facts above "This is yours" are evidence, not celebration.
+   Factual. Lowercase. No exclamation marks.
+4. [Ship it →] is the only CTA on this screen.
+   No "cancel", no "go back." The PM committed at Screen 29.
+```
+
+---
+
+## POST-SHIP + ONGOING SCREENS
+
+---
+
+## SCREEN 31 — DEPLOY CONFIRMATION + FIRST USER MOMENT
+
+```
+Two beats. Separated by 2–4 minutes.
+
+BEAT 1 — Deploy (30 seconds after ship)
+─────────────────────────────────────────────────
+  [dark card, centred]
+  Expert Picks is live.                         ← 22px semibold, white
+  
+  Feature flag: ON · 5% of users               ← staged rollout
+  Deploy time:  23 seconds
+  Rollback:     available (2 seconds)
+  Artisan is watching.                          ← 13px, slate-400
+
+BEAT 2 — First User (2–4 min after deploy)
+─────────────────────────────────────────────────
+  [quiet card, slides up in Now Watching bar area]
+  
+  First user just saw Expert Picks.             ← 14px, slate-700
+  
+  Load time:   0.81s  ✓
+  Errors:      0      ✓
+  Device:      Pixel 6 (first real device seen)
+  
+  "No action needed."                           ← 12px, slate-400
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Beat 2 never reads "Congratulations." It reads "First user just saw."
+   Evidence, not celebration.
+2. The first real device is always named. Not "a user" — Pixel 6.
+   Specificity = credibility.
+3. "No action needed" closes the loop. PM doesn't need to do anything.
+```
+
+---
+
+## SCREEN 32 — 24H PERFORMANCE REPORT
+
+```
+Three layers. PM reads until satisfied and stops.
+
+─────────────────────────────────────────────────
+  Expert Picks · 24 hours                       ← header
+
+LAYER 1: IS IT WORKING?  (always expanded)
+  Error rate:   0.02%   ✓  (threshold: 0.1%)
+  Load time:    0.84s   ✓  (target: < 1.2s)
+  Uptime:       100%    ✓
+  Flag status:  ON · no incidents
+
+LAYER 2: IS IT DOING WHAT YOU INTENDED?  (expanded)
+  Users who saw Expert Picks:     2,847
+  Tapped a pick:                    412  (14.5%)
+  Saved a pick:                     203  (7.1%)
+  Returned same session:            891  (31%)
+
+LAYER 3: DID IT MOVE THE METRIC?  (collapsed, measuring)
+  Purchase rate impact:   measuring...
+  Session depth:          measuring...
+  "Check back in 7 days."                       ← 12px, slate-400
+
+FOOTER
+  Source: Analytics API + Artisan trace · verified ●
+  [Share this report →]   [Full breakdown →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Layer 1 is the PM's first read. Green = stop reading.
+   If Layer 1 is amber or red, it expands automatically and
+   the report leads with the problem, not the metrics.
+2. Layer 3 never shows a partial number with a confidence caveat.
+   It either shows a verified number or "measuring."
+   No "~23% (est.)" — that false precision destroys trust.
+```
+
+---
+
+## SCREEN 33 — ERROR ALERT + ROLLBACK EXPERIENCE
+
+```
+Two states: alert and recovery.
+
+ALERT STATE (Now Watching bar turns amber)
+─────────────────────────────────────────────────
+  Now Watching: ✗ Expert Picks · 0.3% errors · above threshold  [See now →]
+
+ALERT DETAIL SCREEN
+  "Error rate crossed 0.1% threshold."          ← 20px, amber-900
+  Expert Picks · 0.3% of loads failing
+  Started: 14 minutes ago
+  Affected: ~8 users per hour
+
+  WHAT'S FAILING
+  "TypeError: editorial_score is null on
+   non-editorial products. Fallback not firing."
+  Artisan's read: "Fixable without reshipping."
+
+  YOUR OPTIONS (3 cards)
+
+  ┌─────────────────────────────────────────────┐
+  │  Toggle the flag               ← recommended│
+  │  Expert Picks hidden instantly.             │
+  │  2 seconds. No deploy needed.               │
+  │  [Toggle off now →]                         │
+  └─────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────┐
+  │  Artisan fixes it (hot-patch)               │
+  │  ~3 min. Re-runs Scenario 7 before push.   │
+  │  [Fix it →]                                 │
+  └─────────────────────────────────────────────┘
+  ┌─────────────────────────────────────────────┐
+  │  Page Apur                                  │
+  │  Send him full context. He decides.         │
+  │  [Page Apur →]                              │
+  └─────────────────────────────────────────────┘
+
+ROLLBACK STATE (after flag toggle)
+─────────────────────────────────────────────────
+  Expert Picks is off.                          ← 22px semibold, slate-900
+  
+  Users see previous home screen.
+  Propagation: complete (2 seconds)
+  Error rate: 0%  ← live, animates to zero
+  
+  Affected total: ~8 users
+  "This was caught early. 8 of 2,847 saw the error." ← evidence, not comfort
+
+  Artisan is diagnosing the null-safe fallback.
+  Fix ready for your review when done.
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. PM sees the alert BEFORE anyone messages them.
+   Now Watching bar is the primary channel. Always.
+2. "Toggle the flag" is always option 1. Self-service exit first.
+3. Rollback screen uses past tense: "Users see previous screen."
+   The problem is already solved by the time this renders.
+4. "8 of 2,847" reframes the error. Not a crisis — a caught edge case.
+```
+
+---
+
+## SCREEN 34 — REGRESSION DETECTION
+
+```
+Trigger: A change to a shared dependency is detected in any
+environment (staging, PR, production). Artisan catches it
+before the PM or engineer has to.
+
+Now Watching bar:
+  ◐ Expert Picks may be affected by a recent API change  [Check →]
+
+DETAIL SCREEN
+─────────────────────────────────────────────────
+  "A change was made to ProductAPI 3 hours ago.
+   Expert Picks uses this endpoint."            ← 20px semibold, slate-900
+
+  WHAT CHANGED
+  product_thumbnail_url renamed → product_image_url
+  ProductAPI v2.3 → v2.4
+  Change is in staging (not yet in production)
+
+  IMPACT ON EXPERT PICKS
+  Images will fail to load.
+  Scenario 1 (existing test) would now fail.
+
+  WHY ARTISAN CAUGHT THIS
+  ● Expert Picks uses product_thumbnail_url  (traced to build)
+  ● ProductAPI changelog detected            (Artisan monitors)
+  ● Staging test suite: Scenario 1 now failing
+
+  OPTIONS
+  [Artisan fixes the field name — 2 min →]
+  [Page Apur →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Caught in staging, before production. This is always emphasised.
+   "Not yet in production" is the headline frame.
+2. Why Artisan caught it is always shown. Not magic — traced.
+3. Fix is one tap. No brief required — this is maintenance, not new build.
+```
+
+---
+
+## SCREEN 35 — DEPENDENCY HEALTH (PASSIVE)
+
+```
+Lives in workspace sidebar. Passive. PM never has to ask.
+
+WORKSPACE SIDEBAR — Feature Health section
+
+  Expert Picks           ✓ Healthy
+  FeaturedBrands         ✓ Healthy
+  Wishlist redesign      ⚑ Dependency change pending  ← amber
+
+  [Expert Picks ↓] expanded:
+    Last error:          18 days ago (resolved)
+    API dependencies:    3 of 3 healthy
+    Shared calls:        WishlistAPI (monitored)
+    Design tokens:       all current
+    Test coverage:       89% (stable)
+    Next check:          in 4 hours
+
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. This panel is always visible in the workspace sidebar.
+   Never requires navigation to find.
+2. ⚑ items in amber appear immediately with no animation.
+   Subtlety is for good news. Amber is direct.
+3. "Next check: in 4 hours" tells PM Artisan is actively watching.
+   Not "last checked: X ago" — that reads as passive.
+```
+
+---
+
+## SCREEN 36 — COMPARATIVE PERFORMANCE
+
+```
+Shown at 7-day mark alongside the 24h report.
+
+─────────────────────────────────────────────────
+  Expert Picks · 7 days · How it compares
+
+  Save rate        7.1%  ↑ vs. FeaturedBrands 4.2%    +69%
+  Return same day  31%   ↑ vs. home avg 24%            +29%
+  Load time        0.84s ✓ top 20% of home features
+
+  "Expert Picks is outperforming the section
+   it replaced on every metric."               ← one-line verdict first
+
+  Source: Analytics · 7-day A/B window · verified ●
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Verdict first, data second. Always.
+2. Comparison is always to a named feature or baseline.
+   "vs. FeaturedBrands 4.2%" not "vs. average."
+3. This card surfaces only if performance is above baseline.
+   Below baseline: honest framing (Screen 32, Layer 2).
+```
+
+---
+
+## SCREEN 37 — IMPACT ATTRIBUTION (14 DAYS)
+
+```
+─────────────────────────────────────────────────
+  Expert Picks · 14 days · Did it move the metric?
+
+  Purchase rate (users who saw Expert Picks):
+    +23% vs. control group                    ← 28px, emerald-700, bold
+
+  Session depth:     +1.4 pages per session   ← 16px, emerald-600
+  Repeat visits:     +8% (7-day)              ← 16px, emerald-600
+
+  "Expert Picks is driving measurable purchase
+   behaviour. The editorial curation model is
+   working."                                  ← verdict. Product judgment validated.
+
+  Source: Analytics · A/B test · 14-day · verified ●
+
+  [Share with stakeholders →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "The idea worked" is implied, never stated.
+   "The editorial curation model is working" = product judgment validated.
+   Artisan does not say "great idea."
+2. +23% is the largest text on the screen.
+   That number is what the PM worked toward. It deserves the emphasis.
+```
+
+---
+
+## SCREEN 38 — PM PORTFOLIO
+
+```
+Accessible from profile. The B5 moment made visible over time.
+
+─────────────────────────────────────────────────
+  Meera Iyer · Product Manager                 ← identity
+
+  "6 features shipped in 90 days
+   that required an engineering sprint before." ← B5 statement
+
+  TABLE
+  Feature             Shipped    Impact              Status
+  Expert Picks        Jun 12     +23% purchase       ✓ Healthy
+  Pricing page        May 28     +14% conversion     ✓ Healthy
+  Save flow v2        May 14     +31% saves          ✓ Healthy
+  Browse filters      Apr 30     measuring           ✓ Healthy
+  Wishlist share      Apr 19     +8% shares          ✓ Healthy
+  Hero redesign       Apr 7      —                   ⚑ Flag off
+
+  SUMMARY ROW
+  6 features shipped
+  0 production errors (1 rollback, caught early)
+  Avg time to ship: 5.4 minutes
+  Sprint equivalent: ~18 days saved
+
+  [Share this →]   [See full traces →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. "That required an engineering sprint before" is the key line.
+   Not "features built" — features that were previously impossible.
+2. Rollback shown honestly: "1 rollback, caught early."
+   Not hidden. The portfolio is a record, not a highlight reel.
+3. Sprint equivalent calculated and shown.
+   This is the business case in one number.
+```
+
+---
+
+## SCREEN 39 — STAKEHOLDER CARD (SHAREABLE)
+
+```
+PM shares this with manager, EM, or team.
+Designed to work as a Slack embed, email, or PDF.
+Self-contained. No login required to read.
+
+┌──────────────────────────────────────────────┐
+│  Expert Picks                                │
+│  Shipped June 12 · Meera Iyer (PM)           │
+│                                              │
+│  +23% purchase rate (14-day A/B)             │
+│  2,847 users · first 24 hours                │
+│  0 production errors                         │
+│                                              │
+│  Spec reviewed by:  Apur Sharma              │
+│  QA: 23 scenarios, all passed               │
+│  Rollback: available in 2 seconds            │
+│                                              │
+│  Source: Artisan trace · verified ●          │
+│  [Full trace →]                              │
+└──────────────────────────────────────────────┘
+
+NON-NEGOTIABLES
+1. "Spec reviewed by: Apur Sharma" is on this card.
+   The accountability chain is part of the shareable record.
+2. Rollback availability is on this card.
+   Business stakeholders read this as: "there is an exit."
+3. Verified dot (●) is on this card.
+   Every claim here is trace-backed, not asserted.
+```
+
+---
+
+## SCREEN 40 — LEARNING CARD
+
+```
+Shown at 30 days. Closes the skill loop.
+Connects this build back to the Ship Bud's growth.
+
+─────────────────────────────────────────────────
+  "What Expert Picks taught me about your taste."
+
+  YOUR PREFERENCES (now calibrated)
+  · Card title: 14px (you corrected from 16px)
+  · Expert name: slate-500 (you corrected from default)
+  · Card height: 248px (you corrected from 220px)
+  · You prefer editorial over algorithmic when both available
+  · You ask for height adjustments on 4 of 5 home screen builds
+
+  "The next home screen feature will need
+   3 corrections, not 8."
+
+  SHIP BUD UPDATE
+  IS this month:  44% → 49%  (+5pp)
+  Calibration:    improving — 8 more sessions to next threshold
+  At this pace:   graduation in ~14 months
+
+  [View Ship Bud →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Preferences are stated as observations, not instructions.
+   "You corrected from 16px" not "you prefer 14px."
+   Artisan learned from observation, not configuration.
+2. The IS improvement is shown in this card, not separately.
+   The correction history IS the IS progress. They are the same thing.
+```
+
+---
+
+## STAKEHOLDER TRUST VIEWS
+
+```
+Architecture: One trace. Six views.
+The same evidence, filtered for each stakeholder's first question.
+
+Every view shares:
+  · The Accountability Chain component (see below)
+  · Source citations (● verified / ◐ inferred)
+  · [Ask Artisan →] — any question, answered from the trace
+```
+
+---
+
+## ACCOUNTABILITY CHAIN COMPONENT (shared, all views)
+
+```
+Persistent component. Top of every stakeholder view.
+Answers: "Who is responsible for this?"
+
+┌────────────────────────────────────────────────┐
+│  ACCOUNTABILITY CHAIN                          │
+│                                                │
+│  Meera Iyer      Scoped + approved    14:52   │
+│  Apur Sharma     Reviewed spec        10:31   │
+│  Artisan         Built + self-tested  14:47   │
+│  Artisan QA      23 scenarios         14:50   │
+│  Meera Iyer      Final approval       14:52   │
+│                                                │
+│  Every decision in this build is documented.  │
+│  [Full audit trail →]                          │
+└────────────────────────────────────────────────┘
+
+NON-NEGOTIABLES
+1. Every human who touched this is named with timestamp.
+2. Artisan's contribution is listed alongside humans — not hidden.
+   "Artisan Built + self-tested" is a legitimate chain entry.
+3. "Every decision is documented" is the trust claim.
+   It must be linkable: [Full audit trail →] must go somewhere real.
+```
+
+---
+
+## SCREEN 41 — ENGINEERING MANAGER VIEW
+
+```
+First question: "Did this meet our engineering standards?"
+─────────────────────────────────────────────────
+HEADLINE VERDICT
+  ✓ Meets engineering standards                 ← first line, always
+
+CODE QUALITY
+  ESLint:            0 errors, 0 warnings
+  Cyclomatic complexity: 12  (team avg: 18) ← below average = better
+  Test coverage:     89%    (team standard: 80%)
+  Type safety:       100%   (0 'any' types)
+
+PATTERN COMPLIANCE
+  "ExpertPicksCard follows the same structure as
+   FeaturedBrandsCard (Apur, March 14). Same prop
+   shape, same render pattern, same test structure."
+  [Compare files side-by-side →]
+
+TECH DEBT
+  New debt introduced:   None detected
+  Existing debt touched: 0 files
+  New packages added:    0
+
+WHAT A HUMAN REVIEWED
+  Apur Sharma reviewed spec + data sources (10:31 AM)
+  Flagged: editorial_score deprecation risk
+  Resolved: Meera switched to recommendation_score
+
+SELF-CORRECTIONS (Artisan's own review)
+  3 issues caught before PM saw the build
+  [See what was fixed →]
+
+[Accountability Chain]
+[Ask Artisan about any line of code →]
+─────────────────────────────────────────────────
+```
+
+---
+
+## SCREEN 42 — QA MANAGER VIEW
+
+```
+First question: "What wasn't tested?"
+─────────────────────────────────────────────────
+HEADLINE VERDICT
+  ✓ 23 scenarios passed · 2 known gaps · both low risk
+
+COVERAGE MAP (visual DAG)
+  Tested paths: emerald
+  Untested paths: amber (with risk label)
+  [Full map →]
+
+SCENARIOS BY TYPE
+  Happy path:       ✓ Scenarios 1–5
+  Error states:     ✓ Scenarios 6–11
+  Edge cases:       ✓ Scenarios 12–19
+  Device variants:  ✓ Scenarios 20–23
+
+KNOWN GAPS (never hidden)
+  ○ Timeout > 60s     Low risk · outside acceptance criteria
+  ○ Offline state     Not in scope · documented in spec
+
+REGRESSION
+  47 existing tests: ✓ 47 passed
+  Files touched: 3 of 847
+
+RE-RUN IN YOUR PIPELINE
+  [Export as JUnit]  [Export as Playwright]  [Export as Cypress]
+  "Tests run in 4m 12s. Add to CI gate."
+
+SESSION REPLAY
+  [Full QA agent session — seekable →]
+  23 scenarios · 47 minutes · every tap recorded
+
+[Accountability Chain]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Known gaps are the first thing QA Manager looks for.
+   They're listed before the passing scenarios. Honesty leads.
+2. CI export is one tap. QA doesn't rewrite Artisan's tests.
+   They extend them.
+```
+
+---
+
+## SCREEN 43 — DEVELOPER VIEW
+
+```
+First question: "Can I understand and maintain this at 2am?"
+─────────────────────────────────────────────────
+HEADLINE VERDICT
+  ✓ Debuggable · Pattern-compliant · Documented
+
+WHAT WAS BUILT
+  2 new components:
+    ExpertPicksStrip  — container, handles API + empty state
+    ExpertPicksCard   — presentational only, receives props
+
+PATTERN SOURCE
+  "Identical structure to FeaturedBrandsCard.
+   If you know FeaturedBrands, you know this."
+  [Open FeaturedBrandsCard side-by-side →]
+
+KNOWN FAILURE MODES (pre-documented)
+  1. editorial_score null on non-editorial products
+     → fallback: recommendation_score (tested Scenario 7)
+  2. WishlistAPI.getUserItems() is shared
+     → 2 other components affected if this endpoint changes
+     → if Expert Picks breaks, check SavedItems too
+
+RUNBOOK (auto-generated)
+  If Expert Picks fails to render:
+    1. Check editorial_score API (null is expected, fallback handles it)
+    2. Check WishlistAPI (shared — check SavedItems and WishlistWidget)
+    3. Toggle feature flag (2 seconds, no deploy needed)
+
+DECISION LOG
+  14 decisions Artisan made during build
+  Each: what, why, confidence, source
+  [Browse decisions →]
+
+ASK ARTISAN
+  "What does line 47 do?"
+  "Why did you choose this approach over X?"
+  "What happens if the API times out?"
+  → Answers from decision log. Not hallucination. Evidence.
+
+[Accountability Chain]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Known failure modes are documented BEFORE the developer asks.
+   "I might need this at 2am" is a design constraint, not an edge case.
+2. Runbook is auto-generated, not manually written.
+   Developer can edit it — Artisan generates the first version.
+3. "Ask Artisan" answers cite trace sources.
+   No ungrounded claims. Every answer is a trace lookup.
+```
+
+---
+
+## SCREEN 44 — BUSINESS MANAGER VIEW
+
+```
+First question: "Is there an audit trail? Who approved this?"
+─────────────────────────────────────────────────
+HEADLINE VERDICT
+  ✓ Approved · Documented · Low risk · Auditable
+
+AUDIT TRAIL
+  Meera Iyer        Scoped the feature      Jun 12, 09:41
+  Apur Sharma       Reviewed spec           Jun 12, 10:31
+  Artisan           Built and self-tested   Jun 12, 14:47
+  Artisan QA        23 scenarios run        Jun 12, 14:50
+  Meera Iyer        Approved the release    Jun 12, 14:52
+
+RISK ASSESSMENT
+  Risk level:         Low
+  Critical paths:     Untouched (Login, Checkout, Payment)
+  Rollback:           Feature flag · 2 seconds · self-service
+  Error threshold:    Auto-alert if > 0.1%
+
+SPEED vs. TRADITIONAL SPRINT
+  This build:         6 minutes
+  Sprint equivalent:  3 days (estimated)
+  Cost difference:    significant — calculated on request
+
+BUSINESS IMPACT (14-day)
+  Purchase rate:    +23% vs. control
+  Session depth:    +1.4 pages
+  Repeat visits:    +8%
+
+GOVERNANCE
+  Release process:  Feature flag gating ✓
+  QA sign-off:      23 scenarios, Artisan QA agent ✓
+  Spec review:      Engineering (Apur Sharma) ✓
+  PM approval:      Meera Iyer ✓
+
+[Full audit trail →]   [Download PDF →]
+─────────────────────────────────────────────────
+```
+
+---
+
+## SCREEN 45 — DESIGN LEAD VIEW
+
+```
+First question: "Does it match the spec?"
+─────────────────────────────────────────────────
+HEADLINE VERDICT
+  ✓ 0px deviation from Figma spec HP-07 v3.2
+
+FIGMA COMPARISON
+  [Side-by-side: Figma frame ↔ Implementation screenshot]
+  Pixel deviation:    0px on card layout
+  Pixel deviation:    0px on typography
+  Pixel deviation:    0px on spacing
+
+  [Overlay view →]  Design on top of implementation, opacity slider
+
+TOKEN COMPLIANCE
+  Token overrides:    0
+  Hardcoded values:   0
+  Custom CSS lines:   0
+  "100% from your token system."
+
+RESPONSIVE CHECK
+  Mobile (375px):   ✓ [screenshot]
+  Tablet (768px):   ✓ [screenshot]
+  Desktop (1440px): ✓ [screenshot]
+
+INTERACTION STATES
+  Default:          ✓ [screenshot]
+  Hover:            ✓ [screenshot]
+  Saved state:      ✓ [screenshot]
+  Empty state:      ✓ [screenshot]
+
+ANIMATION
+  Fade-in:    200ms (matched Hero section)
+  Source:     HeroSection.tsx animation token
+  Custom:     0 new animations added
+─────────────────────────────────────────────────
+```
+
+---
+
+## SCREEN 46 — ON-CALL ENGINEER VIEW
+
+```
+First question: "Can I fix this at 2am without context?"
+─────────────────────────────────────────────────
+HEADLINE
+  IF THIS PAGES YOU:
+
+STEP 1 — TOGGLE THE FLAG (try this first)
+  Flag name:  expert_picks_v1
+  Where:      Admin panel → Feature Flags → expert_picks_v1
+  Effect:     Hidden instantly. 2 seconds. No deploy.
+  Safe to do: Yes — always. At any time.
+
+STEP 2 — CHECK THESE FIRST
+  editorial_score API   most likely failure (null on non-editorial)
+  WishlistAPI           shared with SavedItems and WishlistWidget
+                        if broken, check all three together
+
+STEP 3 — KNOWN ERROR PATTERNS
+  "editorial_score null"     → fallback should fire. See Scenario 7 trace.
+  "Images fail to load"      → ProductAPI field rename? Check v2.4 changelog.
+  "Strip not rendering"      → HomeScreen.tsx integration (3 lines added)
+
+STEP 4 — CONTACTS
+  Feature owner:   Meera Iyer  (PM)
+  Spec reviewer:   Apur Sharma (knows the approach decisions)
+  Ask Artisan:     [Full context loaded — ask anything →]
+
+ROLLBACK
+  [Toggle flag off →]     2 seconds, self-service
+  [Full rollback →]       90 seconds, Artisan-managed
+
+FULL RUNBOOK    [Detailed steps →]
+DECISION LOG    [Why every decision was made →]
+TRACE           [Every action in the build →]
+─────────────────────────────────────────────────
+NON-NEGOTIABLES
+1. Step 1 is always "toggle the flag." Self-service first.
+2. Known error patterns are documented before any incident.
+   On-call engineer reads this before they're ever paged.
+3. "Ask Artisan" is always available.
+   Artisan has full context. The on-call engineer doesn't need
+   to find and wake up Meera at 2am.
+```
+
+---
+
+## CONNECTIVE THREADS — UPDATED (v1.3)
+
+```
+8 threads connecting all 46 screens:
+
+THREAD 1 — THE NOW WATCHING BAR
+  Every screen. Never empty. Active / QA running / stuck /
+  error alert / paused / regression detected.
+
+THREAD 2 — THE BELIEF ARC (B0 → B5)
+  Screen 1 (B0) → Screen 2 (B1) → Screens 3/4 (B2) →
+  Screen 5 (B3) → Screens 19–30 (B4) → Screen 38 (B5)
+
+THREAD 3 — THE CONTEXT THREAD
+  Scan → Interview → Brief → Data Discovery → Trace →
+  KB buckets → RS context score. Never resets.
+
+THREAD 4 — THE BUD THREAD
+  Every task → bud. Bud grows. IS measured per session.
+  Correction loop feeds calibration. Learning Card closes loop.
+
+THREAD 5 — THE TRUST THREAD
+  Trust markers on every card. ● / ◐ / ○ always present.
+  Fear cards → evidence stack → safety net → ship moment.
+  Post-ship monitoring closes the trust loop.
+
+THREAD 6 — THE TRACE THREAD
+  Brief → Data → Spec → Build → Self-corrections →
+  QA → Approval → Deploy → 24h → 72h → Impact.
+  Every stakeholder view is a window into this same trace.
+
+THREAD 7 — THE DUAL TRACK THREAD
+  RS and IS always visible. D90 honest math.
+  Track A or B is always the PM's choice.
+
+THREAD 8 — THE ACCOUNTABILITY CHAIN THREAD
+  Every stakeholder view shows the same chain.
+  Meera → Apur → Artisan → QA → Meera.
+  The chain is the answer to "who is responsible?"
+  It appears on screens: 24, 41, 42, 43, 44, 45, 46.
 ```
