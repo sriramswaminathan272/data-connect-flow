@@ -621,8 +621,8 @@ const SpecScreen = () => (
     </Card>
 
     <div style={{ display: 'flex', gap: 10 }}>
-      <Btn style={{ flex: 1 }}>Looks right, start building</Btn>
-      <Btn variant="ghost">I have changes</Btn>
+      <Btn style={{ flex: 1 }}>Yes, this is correct — build it</Btn>
+      <Btn variant="ghost">Something's wrong</Btn>
     </div>
   </div>
 );
@@ -805,7 +805,21 @@ const LiveBuildScreen = () => {
         </div>
       </Card>
 
-      <Btn variant="ghost" style={{ alignSelf: 'flex-start' }}>Ask a question</Btn>
+      <div style={{
+        display: 'flex', gap: 8, alignItems: 'center',
+        padding: '10px 14px',
+        background: T.s1, border: `1px solid ${T.border}`,
+        borderRadius: 10,
+      }}>
+        <input
+          placeholder="Ask Artisan something... (e.g. why did you use a cache?)"
+          style={{
+            flex: 1, background: 'transparent', border: 'none',
+            color: T.t1, fontSize: 13, fontFamily: font.inter, outline: 'none',
+          }}
+        />
+        <Btn size="sm">Ask</Btn>
+      </div>
     </div>
   );
 };
@@ -1013,7 +1027,7 @@ const CorrectionLoopScreen = () => {
 
       <div style={{ display: 'flex', gap: 8 }}>
         <input
-          placeholder="Tell Artisan what to change..."
+          placeholder="e.g. The shelf should only show items with ratings above 4.2"
           style={{
             flex: 1, padding: '11px 14px', borderRadius: 10,
             background: T.s1, border: `1px solid ${T.border}`,
@@ -1023,6 +1037,7 @@ const CorrectionLoopScreen = () => {
         />
         <Btn size="md">Fix it</Btn>
       </div>
+      <p style={{ fontSize: 12, color: T.t3 }}>Write what should change in plain English — no code needed.</p>
     </div>
   );
 };
@@ -1309,15 +1324,32 @@ const ReportScreen = () => {
         </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        {metrics.map((m, i) => (
+      {/* Von Restorff: Error rate is the most critical metric — make it dominant */}
+      <div style={{
+        padding: '18px 20px', borderRadius: 14,
+        background: `linear-gradient(135deg, ${T.emerald}15 0%, ${T.emerald}06 100%)`,
+        border: `1px solid ${T.emerald}30`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <p style={{ fontSize: 12, color: T.t3, marginBottom: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Error rate</p>
+          <p style={{ fontFamily: font.grotesk, fontSize: 40, fontWeight: 700, color: T.emerald, lineHeight: 1 }}>0.02%</p>
+          <p style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>Target: &lt; 0.5%</p>
+        </div>
+        <div style={{ padding: '10px 16px', background: T.emerald + '15', borderRadius: 10, textAlign: 'center' }}>
+          <p style={{ fontSize: 12, color: T.t3, marginBottom: 2 }}>Incidents</p>
+          <p style={{ fontFamily: font.grotesk, fontSize: 28, fontWeight: 700, color: T.t1, lineHeight: 1 }}>0</p>
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {metrics.slice(1).map((m, i) => (
           <div key={i} style={{
             background: T.s1, border: `1px solid ${T.border}`,
-            borderRadius: 12, padding: '14px 16px',
+            borderRadius: 12, padding: '12px 14px',
           }}>
-            <p style={{ fontSize: 12, color: T.t3, marginBottom: 4 }}>{m.label}</p>
+            <p style={{ fontSize: 11, color: T.t3, marginBottom: 4 }}>{m.label}</p>
             <p style={{
-              fontFamily: font.grotesk, fontSize: 22, fontWeight: 700,
+              fontFamily: font.grotesk, fontSize: 20, fontWeight: 700,
               color: m.status === 'good' ? T.emerald : m.status === 'bad' ? T.red : T.t1,
               marginBottom: 2,
             }}>{m.value}</p>
