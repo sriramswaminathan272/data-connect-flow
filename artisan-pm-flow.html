@@ -85,6 +85,9 @@ body {
   border-radius: 6px;
 }
 
+/* Remove 300ms tap delay on mobile */
+button, a, [role="button"] { touch-action: manipulation; }
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
@@ -134,8 +137,8 @@ const Verified = ({ label, type = 'verified' }) => {
   };
   const m = map[type];
   return (
-    <span style={{ fontSize: 11, color: m.color, fontFamily: 'monospace', letterSpacing: '0.01em' }}>
-      {m.dot} {m.label}
+    <span style={{ fontSize: 13, fontWeight: 500, color: m.color, fontFamily: 'monospace', letterSpacing: '0.01em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 10 }}>{m.dot}</span> {m.label}
     </span>
   );
 };
@@ -281,11 +284,22 @@ const FeasibilityScreen = () => {
         </p>
       </div>
 
-      {/* Score row */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        <ScorePill label="Feasibility" value="92%" color={T.emerald} />
-        <ScorePill label="Effort" value="4 days" color={T.primary} />
-        <ScorePill label="Risk" value="Low" color={T.amber} />
+      {/* Hero score — dominant visual (Von Restorff: the standout number anchors trust) */}
+      <div style={{
+        padding: '20px 24px', borderRadius: 16,
+        background: `linear-gradient(135deg, ${T.emerald}18 0%, ${T.emerald}08 100%)`,
+        border: `1px solid ${T.emerald}30`,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div>
+          <p style={{ fontSize: 13, color: T.emerald, fontWeight: 500, marginBottom: 4 }}>Feasibility score</p>
+          <p style={{ fontFamily: font.grotesk, fontSize: 52, fontWeight: 700, color: T.emerald, lineHeight: 1 }}>92%</p>
+          <p style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>847 data points checked</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+          <ScorePill label="Effort" value="4 days" color={T.primary} />
+          <ScorePill label="Risk" value="Low" color={T.amber} />
+        </div>
       </div>
 
       {/* Risk breakdown */}
@@ -437,6 +451,7 @@ const RequirementsScreen = () => {
 
 /* ── Screen 2: Data Discovery ── */
 const DataDiscoveryScreen = () => {
+  const [legendOpen, setLegendOpen] = useState(false);
   const sources = [
     {
       name: 'expert_picks',
@@ -511,24 +526,35 @@ const DataDiscoveryScreen = () => {
         ))}
       </div>
 
-      <Card style={{ padding: '14px 18px' }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
-          Provenance legend
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {[
-            ['found · reusing', T.emerald, 'Table exists in prod, already used by other features'],
-            ['found · asking', T.primary, 'Table exists, Artisan needs permission to read'],
-            ['two candidates', T.amber, 'Artisan found 2+ tables that match — you decide'],
-            ['does not exist', T.red, 'Artisan will create the table and seed it for you'],
-          ].map(([label, color, desc]) => (
-            <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <Tag color={color} bg={color + '18'} style={{ minWidth: 120 }}>{label}</Tag>
-              <span style={{ fontSize: 12, color: T.t3 }}>{desc}</span>
-            </div>
-          ))}
+      {/* Progressive Disclosure: legend collapsed by default */}
+      <div
+        onClick={() => setLegendOpen(o => !o)}
+        style={{
+          padding: '12px 16px', background: T.s1,
+          border: `1px solid ${T.border}`, borderRadius: 12,
+          cursor: 'pointer', transition: 'border-color 0.15s',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ fontSize: 13, color: T.t3, fontWeight: 500 }}>What do these labels mean?</p>
+          <span style={{ color: T.t3, fontSize: 11 }}>{legendOpen ? '▲' : '▼'}</span>
         </div>
-      </Card>
+        {legendOpen && (
+          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, animation: 'fadeUp 0.15s ease both' }}>
+            {[
+              ['found · reusing', T.emerald, 'Exists in prod, already used by other features'],
+              ['found · asking', T.primary, 'Exists, Artisan needs your permission to read'],
+              ['two candidates', T.amber, 'Two tables match — you decide which one'],
+              ['does not exist', T.red, 'Artisan will create and seed the table for you'],
+            ].map(([label, color, desc]) => (
+              <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <Tag color={color} bg={color + '18'}>{label}</Tag>
+                <span style={{ fontSize: 12, color: T.t3, lineHeight: 1.4, marginTop: 3 }}>{desc}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
@@ -603,7 +629,7 @@ const SpecScreen = () => (
 
 /* ── Screen 4: Handoff Decision ── */
 const HandoffScreen = () => {
-  const [choice, setChoice] = useState(null);
+  const [choice, setChoice] = useState('review'); // default to recommended
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div>
@@ -615,15 +641,8 @@ const HandoffScreen = () => {
         </p>
       </div>
 
+      {/* Serial Position Effect: put the recommended option first — it gets the most attention */}
       {[
-        {
-          id: 'watch',
-          icon: '👁',
-          title: 'Watch live',
-          subtitle: 'Follow Artisan step-by-step as it builds',
-          detail: 'You see every decision in real time. Artisan pauses and asks before anything risky.',
-          badge: null,
-        },
         {
           id: 'review',
           icon: '✓',
@@ -631,6 +650,14 @@ const HandoffScreen = () => {
           subtitle: 'Artisan builds, you approve before merge',
           detail: 'Artisan runs to completion, then shows you a summary. You sign off or request changes.',
           badge: 'Recommended',
+        },
+        {
+          id: 'watch',
+          icon: '👁',
+          title: 'Watch live',
+          subtitle: 'Follow Artisan step-by-step as it builds',
+          detail: 'You see every decision in real time. Artisan pauses and asks before anything risky.',
+          badge: null,
         },
         {
           id: 'engineering',
@@ -785,6 +812,14 @@ const LiveBuildScreen = () => {
 
 /* ── Screen 6: Self-Correction Summary ── */
 const SelfCorrectionScreen = () => {
+  /* Progressive Disclosure: start with most critical (high) expanded, rest collapsed */
+  const [expanded, setExpanded] = useState(new Set([0]));
+  const toggle = (i) => setExpanded(prev => {
+    const next = new Set(prev);
+    next.has(i) ? next.delete(i) : next.add(i);
+    return next;
+  });
+
   const fixes = [
     {
       what: 'Added null check for empty picks array',
@@ -807,9 +842,10 @@ const SelfCorrectionScreen = () => {
   ];
 
   const sevColor = { high: T.red, medium: T.amber, low: T.emerald };
+  const sevLabel = { high: 'Critical', medium: 'Medium', low: 'Minor' };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
           <Tag color={T.emerald} bg={T.emerald10}>Before you saw it</Tag>
@@ -822,29 +858,55 @@ const SelfCorrectionScreen = () => {
         </p>
       </div>
 
-      {fixes.map((f, i) => (
-        <Card key={i}>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: sevColor[f.severity], marginTop: 6, flexShrink: 0,
-            }} />
-            <p style={{ fontSize: 15, fontWeight: 500, color: T.t1, lineHeight: 1.4 }}>{f.what}</p>
-          </div>
-          <div style={{ paddingLeft: 16 }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div>
-                <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why </span>
-                <span style={{ fontSize: 13, color: T.t2 }}>{f.why}</span>
+      {fixes.map((f, i) => {
+        const isOpen = expanded.has(i);
+        const color = sevColor[f.severity];
+        return (
+          <div
+            key={i}
+            onClick={() => toggle(i)}
+            style={{
+              background: T.s1,
+              border: `1px solid ${isOpen ? color + '40' : T.border}`,
+              borderRadius: 14,
+              overflow: 'hidden',
+              cursor: 'pointer',
+              transition: 'border-color 0.15s',
+            }}
+          >
+            <div style={{ padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: color, flexShrink: 0,
+              }} />
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14, fontWeight: 500, color: T.t1, lineHeight: 1.4 }}>{f.what}</span>
+                </div>
+                {!isOpen && (
+                  <span style={{ fontSize: 12, color: T.t3 }}>{sevLabel[f.severity]} · tap to expand</span>
+                )}
               </div>
-              <div>
-                <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Result </span>
-                <span style={{ fontSize: 13, color: T.emerald }}>{f.impact}</span>
-              </div>
+              <Tag color={color} bg={color + '18'}>{sevLabel[f.severity]}</Tag>
+              <span style={{ color: T.t3, fontSize: 11, flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
             </div>
+            {isOpen && (
+              <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 16px 14px 36px', background: color + '05' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div>
+                    <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why </span>
+                    <span style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{f.why}</span>
+                  </div>
+                  <div>
+                    <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Result </span>
+                    <span style={{ fontSize: 13, color: T.emerald }}>{f.impact}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </Card>
-      ))}
+        );
+      })}
 
       <div style={{ padding: '12px 16px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
         <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
@@ -1138,15 +1200,25 @@ const ShipScreen = () => {
       {!shipped ? (
         <>
           <div>
+            {/* Radial glow — visual ceremony for the trust milestone */}
             <div style={{
-              width: 72, height: 72, borderRadius: '50%',
-              background: T.emerald10, border: `2px solid ${T.emerald}40`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 16px', fontSize: 28,
+              position: 'relative', width: 88, height: 88, margin: '0 auto 16px',
             }}>
-              🚀
+              <div style={{
+                position: 'absolute', inset: -16,
+                background: `radial-gradient(circle, ${T.emerald}20 0%, transparent 70%)`,
+                borderRadius: '50%',
+              }} />
+              <div style={{
+                width: 88, height: 88, borderRadius: '50%',
+                background: T.emerald10, border: `2px solid ${T.emerald}50`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 34, position: 'relative',
+              }}>
+                🚀
+              </div>
             </div>
-            <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+            <h1 style={{ fontFamily: font.grotesk, fontSize: 30, fontWeight: 700, color: T.t1, lineHeight: 1.2, marginBottom: 6 }}>
               Ready to ship
             </h1>
             <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
@@ -1181,15 +1253,22 @@ const ShipScreen = () => {
         </>
       ) : (
         <div style={{ animation: 'fadeUp 0.3s ease both', paddingTop: 16 }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%',
-            background: T.emerald10, border: `2px solid ${T.emerald}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 20px', fontSize: 28,
-          }}>
-            ✓
+          <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 20px' }}>
+            <div style={{
+              position: 'absolute', inset: -20,
+              background: `radial-gradient(circle, ${T.emerald}25 0%, transparent 70%)`,
+              borderRadius: '50%',
+            }} />
+            <div style={{
+              width: 88, height: 88, borderRadius: '50%',
+              background: T.emerald10, border: `2px solid ${T.emerald}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 32, position: 'relative',
+            }}>
+              ✓
+            </div>
           </div>
-          <h1 style={{ fontFamily: font.grotesk, fontSize: 28, fontWeight: 700, color: T.t1, marginBottom: 8 }}>
+          <h1 style={{ fontFamily: font.grotesk, fontSize: 32, fontWeight: 700, color: T.emerald, marginBottom: 8, letterSpacing: '-0.02em' }}>
             Shipped.
           </h1>
           <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6, marginBottom: 20 }}>
@@ -1318,6 +1397,21 @@ const App = () => {
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.bg, maxWidth: 480, margin: '0 auto', position: 'relative' }}>
+      {/* Skip link for keyboard/screen reader users */}
+      <a
+        href="#main-content"
+        style={{
+          position: 'absolute', top: 8, left: 8, zIndex: 100,
+          padding: '8px 12px', borderRadius: 6, fontSize: 13,
+          background: T.primary, color: T.t1, fontFamily: font.inter,
+          textDecoration: 'none', fontWeight: 500,
+          transform: 'translateY(-60px)', transition: 'transform 0.1s',
+        }}
+        onFocus={e => { e.target.style.transform = 'translateY(0)'; }}
+        onBlur={e => { e.target.style.transform = 'translateY(-60px)'; }}
+      >
+        Skip to content
+      </a>
       {/* Progress bar — top of screen */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, background: T.s2, zIndex: 50 }}>
         <div style={{
@@ -1339,7 +1433,11 @@ const App = () => {
         <span style={{ fontSize: 15, fontWeight: 700, fontFamily: font.grotesk, color: T.t1, letterSpacing: '-0.02em' }}>
           Artisan
         </span>
-        <span style={{ fontSize: 13, fontWeight: 500, color: T.t2, position: 'absolute', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
+        <span style={{
+          fontSize: 13, fontWeight: 500, color: T.t2,
+          position: 'absolute', left: 0, right: 0, textAlign: 'center',
+          pointerEvents: 'none', whiteSpace: 'nowrap',
+        }}>
           {SCREENS[screen].name}
         </span>
         <span style={{ fontSize: 12, color: T.t3, fontFamily: 'monospace' }}>
@@ -1348,7 +1446,7 @@ const App = () => {
       </header>
 
       {/* Scrollable content */}
-      <main style={{
+      <main id="main-content" role="main" style={{
         flex: 1,
         marginTop: 59,
         marginBottom: 72,
@@ -1361,7 +1459,7 @@ const App = () => {
       </main>
 
       {/* Bottom nav */}
-      <footer style={{
+      <footer role="navigation" aria-label="Screen navigation" style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
         height: 68,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -1381,25 +1479,27 @@ const App = () => {
           ← Back
         </Btn>
 
-        {/* Dot nav — tap to jump */}
-        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+        {/* Dot nav — Fitts's Law: 44px hit area wrapping the visual 6px dot */}
+        <div style={{ display: 'flex', gap: 2, alignItems: 'center', flex: 1, justifyContent: 'center' }}>
           {Array.from({ length: total }).map((_, i) => (
             <button
               key={i}
               onClick={() => go(i)}
-              aria-label={`Go to screen ${i + 1}: ${SCREENS[i].name}`}
+              aria-label={`${SCREENS[i].name} (${i + 1} of ${total})`}
               style={{
-                width: i === screen ? 20 : 6,
-                height: 6,
+                width: 24, height: 44, // full 44px tap target; visual indicator below
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+              }}
+            >
+              <span style={{
+                display: 'block',
+                width: i === screen ? 20 : 6, height: 6,
                 borderRadius: 3,
                 background: i === screen ? T.primary : i < screen ? T.primary + '55' : T.s3,
-                border: 'none',
-                cursor: 'pointer',
-                padding: 0,
                 transition: 'width 0.2s ease, background 0.2s ease',
-                minHeight: 20, // tap target height
-              }}
-            />
+              }} />
+            </button>
           ))}
         </div>
 
