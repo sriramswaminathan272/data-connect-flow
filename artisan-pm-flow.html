@@ -1,0 +1,1421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Artisan · PM Shipping Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #030712;
+  --s1: #0F172A;
+  --s2: #1E293B;
+  --s3: #263145;
+  --border: #1E293B;
+  --border-h: #334155;
+  --primary: #4F46E5;
+  --primary-h: #4338CA;
+  --primary-10: rgba(79,70,229,0.10);
+  --primary-20: rgba(79,70,229,0.20);
+  --emerald: #10B981;
+  --emerald-10: rgba(16,185,129,0.10);
+  --amber: #F59E0B;
+  --amber-10: rgba(245,158,11,0.10);
+  --red: #EF4444;
+  --red-10: rgba(239,68,68,0.10);
+  --violet: #8B5CF6;
+  --t1: #F8FAFC;
+  --t2: #94A3B8;
+  --t3: #475569;
+}
+
+html, body { height: 100%; background: var(--bg); }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--t1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+  font-size: 16px;
+}
+
+#root { height: 100%; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 2px; }
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes progressFill {
+  from { width: 0; }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.screen-enter { animation: fadeUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
+.spin { animation: spin 1s linear infinite; }
+
+/* Focus styles — accessibility */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+const { useState, useEffect, useCallback, useRef } = React;
+
+/* ─────────────────────────────── TOKENS ─────────────────────────────── */
+const T = {
+  bg: '#030712', s1: '#0F172A', s2: '#1E293B', s3: '#263145',
+  border: '#1E293B', borderH: '#334155',
+  primary: '#4F46E5', primaryH: '#4338CA', primary10: 'rgba(79,70,229,0.10)', primary20: 'rgba(79,70,229,0.20)',
+  emerald: '#10B981', emerald10: 'rgba(16,185,129,0.10)',
+  amber: '#F59E0B', amber10: 'rgba(245,158,11,0.10)',
+  red: '#EF4444', red10: 'rgba(239,68,68,0.10)',
+  violet: '#8B5CF6',
+  t1: '#F8FAFC', t2: '#94A3B8', t3: '#475569',
+};
+
+const font = { grotesk: "'Space Grotesk', sans-serif", inter: "'Inter', sans-serif" };
+
+/* ─────────────────────────────── PRIMITIVES ─────────────────────────── */
+
+const Tag = ({ color = T.t3, bg, children, icon }) => (
+  <span style={{
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    padding: '3px 8px', borderRadius: 5,
+    fontSize: 11, fontWeight: 500, letterSpacing: '0.02em',
+    color, background: bg || color + '18',
+    fontFamily: font.inter,
+  }}>
+    {icon && <span style={{ fontSize: 9 }}>{icon}</span>}
+    {children}
+  </span>
+);
+
+const Verified = ({ label, type = 'verified' }) => {
+  const map = {
+    verified: { dot: '●', color: T.emerald, label: label || 'verified' },
+    inferred: { dot: '◐', color: T.amber,   label: label || 'inferred' },
+    suggested:{ dot: '○', color: T.t3,      label: label || 'suggested' },
+  };
+  const m = map[type];
+  return (
+    <span style={{ fontSize: 11, color: m.color, fontFamily: 'monospace', letterSpacing: '0.01em' }}>
+      {m.dot} {m.label}
+    </span>
+  );
+};
+
+const Divider = () => (
+  <div style={{ height: 1, background: T.border, margin: '20px 0' }} />
+);
+
+/* Card component — the core container */
+const Card = ({ children, style, hover }) => {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <div
+      onMouseEnter={() => hover && setHovered(true)}
+      onMouseLeave={() => hover && setHovered(false)}
+      style={{
+        background: T.s1,
+        border: `1px solid ${hovered ? T.borderH : T.border}`,
+        borderRadius: 16,
+        padding: 24,
+        transition: 'border-color 0.15s ease',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
+/* Progress bar inside a card */
+const ProgressBar = ({ value, color = T.primary, bg = T.s2, height = 6 }) => (
+  <div style={{ height, background: bg, borderRadius: height / 2, overflow: 'hidden' }}>
+    <div style={{
+      height: '100%', width: `${value}%`,
+      background: color, borderRadius: height / 2,
+      transition: 'width 0.6s ease',
+    }} />
+  </div>
+);
+
+/* Score pill */
+const ScorePill = ({ label, value, color = T.primary }) => (
+  <div style={{
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+    padding: '12px 20px', background: color + '15',
+    border: `1px solid ${color}30`, borderRadius: 12,
+    minWidth: 90,
+  }}>
+    <span style={{ fontSize: 24, fontWeight: 700, fontFamily: font.grotesk, color, lineHeight: 1 }}>{value}</span>
+    <span style={{ fontSize: 11, color: T.t2, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+  </div>
+);
+
+/* Inline spinner */
+const Spinner = ({ size = 16 }) => (
+  <span className="spin" style={{
+    display: 'inline-block',
+    width: size, height: size,
+    border: `2px solid ${T.s2}`,
+    borderTopColor: T.primary,
+    borderRadius: '50%',
+  }} />
+);
+
+/* ─────────────────────────────── BUTTON ──────────────────────────────── */
+const Btn = ({ children, onClick, disabled, variant = 'primary', size = 'md', style: sx }) => {
+  const [pressed, setPressed] = useState(false);
+  const sizes = {
+    sm: { padding: '8px 14px', fontSize: 13, minHeight: 34 },
+    md: { padding: '11px 20px', fontSize: 14, minHeight: 44 },
+    lg: { padding: '14px 28px', fontSize: 15, minHeight: 52 },
+  };
+  const variants = {
+    primary: {
+      background: disabled ? T.s2 : pressed ? T.primaryH : T.primary,
+      color: disabled ? T.t3 : T.t1,
+      border: 'none',
+    },
+    ghost: {
+      background: 'transparent',
+      color: disabled ? T.t3 : T.t2,
+      border: `1px solid ${T.border}`,
+    },
+    danger: {
+      background: pressed ? '#DC2626' : T.red,
+      color: T.t1,
+      border: 'none',
+    },
+    success: {
+      background: pressed ? '#059669' : T.emerald,
+      color: T.t1,
+      border: 'none',
+    },
+  };
+  return (
+    <button
+      onClick={disabled ? undefined : onClick}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
+      disabled={disabled}
+      style={{
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+        borderRadius: 10,
+        fontFamily: font.inter, fontWeight: 500,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background 0.12s ease, transform 0.1s ease',
+        transform: pressed && !disabled ? 'scale(0.98)' : 'scale(1)',
+        userSelect: 'none',
+        ...sizes[size],
+        ...variants[variant],
+        ...sx,
+      }}
+    >
+      {children}
+    </button>
+  );
+};
+
+/* ─────────────────────────────── SCREENS ─────────────────────────────── */
+
+/* ── Screen 0: Feasibility Card ── */
+const FeasibilityScreen = () => {
+  const risks = [
+    { level: 'Low', label: 'Data availability', detail: 'All 3 required tables exist in prod', color: T.emerald },
+    { level: 'Low', label: 'API impact', detail: 'Read-only change, no write endpoints touched', color: T.emerald },
+    { level: 'Medium', label: 'A/B test collision', detail: 'Expert Picks overlaps with 2 live experiments', color: T.amber },
+    { level: 'Low', label: 'Rollback complexity', detail: 'Feature flag exists, kill-switch ready', color: T.emerald },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <Tag color={T.emerald} bg={T.emerald + '15'}>Ready to build</Tag>
+          <Tag color={T.t3}>Expert Picks · Home Screen</Tag>
+        </div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          Can we build this?
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          Artisan checked 847 data points across your codebase, past PRs, and team velocity.
+        </p>
+      </div>
+
+      {/* Score row */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <ScorePill label="Feasibility" value="92%" color={T.emerald} />
+        <ScorePill label="Effort" value="4 days" color={T.primary} />
+        <ScorePill label="Risk" value="Low" color={T.amber} />
+      </div>
+
+      {/* Risk breakdown */}
+      <Card>
+        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+          Risk breakdown
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {risks.map((r, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <Tag color={r.color} bg={r.color + '15'}>{r.level}</Tag>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>{r.label}</div>
+                <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{r.detail}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Comparable work */}
+      <Card>
+        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+          Closest shipped feature
+        </p>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 10, background: T.primary10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <svg width="18" height="18" fill={T.primary} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>Trending Shelf · Q3 2024</div>
+            <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>Similar data shape · Shipped in 3.5 days · 0 incidents</div>
+          </div>
+          <Verified type="verified" />
+        </div>
+      </Card>
+
+      <div style={{ padding: '12px 16px', background: T.primary10, borderRadius: 10, border: `1px solid ${T.primary}25` }}>
+        <p style={{ fontSize: 13, color: T.primary, lineHeight: 1.5 }}>
+          Artisan found everything it needs to proceed. No blockers.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+/* ── Screen 1: Requirements Discovery ── */
+const RequirementsScreen = () => {
+  const [expanded, setExpanded] = useState(null);
+  const reqs = [
+    {
+      id: 0, status: 'confirmed', label: 'Show top 5 expert-curated items per category',
+      detail: 'Source: product-spec-v4.docx · Line 23 · Cross-checked with design mock #88',
+      source: 'spec',
+    },
+    {
+      id: 1, status: 'confirmed', label: 'Refresh picks every 24 hours, not real-time',
+      detail: 'Inferred from analytics dashboard — real-time would spike costs 4×',
+      source: 'inferred',
+    },
+    {
+      id: 2, status: 'question', label: 'What happens if a category has fewer than 5 experts?',
+      detail: null,
+      source: 'gap',
+    },
+    {
+      id: 3, status: 'confirmed', label: 'Respect personalisation exclusions (blocked brands, dietary)',
+      detail: 'Found in shared personalisation lib · Already used by Trending Shelf',
+      source: 'code',
+    },
+  ];
+
+  const statusStyle = {
+    confirmed: { dot: '●', color: T.emerald },
+    question: { dot: '?', color: T.amber },
+    gap: { dot: '!', color: T.red },
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <Tag color={T.primary} style={{ marginBottom: 8 }}>Step 2 of 12</Tag>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          What exactly are we building?
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          Artisan read the spec, the Figma file, and 14 Slack threads. Here's what it understood.
+        </p>
+      </div>
+
+      {/* Requirements list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {reqs.map((r) => {
+          const s = statusStyle[r.status] || statusStyle.confirmed;
+          const isOpen = expanded === r.id;
+          return (
+            <div
+              key={r.id}
+              onClick={() => r.detail && setExpanded(isOpen ? null : r.id)}
+              style={{
+                background: T.s1, border: `1px solid ${isOpen ? T.borderH : T.border}`,
+                borderRadius: 12, padding: '14px 16px',
+                cursor: r.detail ? 'pointer' : 'default',
+                transition: 'border-color 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <span style={{ color: s.color, fontSize: 13, marginTop: 2, flexShrink: 0, fontFamily: 'monospace' }}>{s.dot}</span>
+                <div style={{ flex: 1 }}>
+                  <span style={{ fontSize: 14, color: T.t1, lineHeight: 1.5 }}>{r.label}</span>
+                  {isOpen && r.detail && (
+                    <div style={{ marginTop: 8, padding: '10px 12px', background: T.s2, borderRadius: 8 }}>
+                      <p style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>{r.detail}</p>
+                    </div>
+                  )}
+                </div>
+                {r.detail && (
+                  <span style={{ color: T.t3, fontSize: 11, marginTop: 3 }}>{isOpen ? '▲' : '▼'}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Gap resolution */}
+      <Card style={{ borderColor: T.amber + '40', background: T.amber + '08' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ fontSize: 18, marginTop: 2 }}>⚠</span>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: T.amber, marginBottom: 4 }}>1 gap found</p>
+            <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
+              What happens when a category has fewer than 5 experts? Artisan will use a safe default (show all available) and flag this for your review before shipping.
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <Verified type="verified" label="3 confirmed" />
+        <Verified type="inferred" label="1 resolved with safe default" />
+      </div>
+    </div>
+  );
+};
+
+/* ── Screen 2: Data Discovery ── */
+const DataDiscoveryScreen = () => {
+  const sources = [
+    {
+      name: 'expert_picks',
+      db: 'prod_catalog',
+      type: 'found · reusing',
+      typeColor: T.emerald,
+      rows: '12,400 rows',
+      freshness: 'Updated 2h ago',
+      usage: 'Primary data source',
+    },
+    {
+      name: 'user_preferences',
+      db: 'prod_users',
+      type: 'found · reusing',
+      typeColor: T.emerald,
+      rows: '2.1M rows',
+      freshness: 'Live',
+      usage: 'Personalisation exclusions',
+    },
+    {
+      name: 'category_weights',
+      db: '—',
+      type: 'two candidates',
+      typeColor: T.amber,
+      rows: null,
+      freshness: null,
+      usage: 'Ranking algorithm input',
+    },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          Where does the data come from?
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          Every number Artisan uses has a traceable origin. Here's the full picture.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {sources.map((s, i) => (
+          <Card key={i} hover style={{ padding: '16px 20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <code style={{ fontSize: 13, color: T.primary, background: T.primary10, padding: '2px 8px', borderRadius: 5 }}>
+                  {s.name}
+                </code>
+                <Tag color={s.typeColor} bg={s.typeColor + '18'}>{s.type}</Tag>
+              </div>
+              {s.db !== '—' && (
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <span style={{ fontSize: 12, color: T.t3 }}>
+                    <span style={{ color: T.t2 }}>{s.db}</span> · {s.rows}
+                  </span>
+                  <span style={{ fontSize: 12, color: T.t3 }}>{s.freshness}</span>
+                </div>
+              )}
+              <p style={{ fontSize: 13, color: T.t2 }}>{s.usage}</p>
+              {s.type === 'two candidates' && (
+                <div style={{ padding: '10px 12px', background: T.amber10, borderRadius: 8, border: `1px solid ${T.amber}30` }}>
+                  <p style={{ fontSize: 12, color: T.amber, marginBottom: 8 }}>Two tables match this name. Which did you mean?</p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Btn variant="ghost" size="sm">catalog.category_weights</Btn>
+                    <Btn variant="ghost" size="sm">ranking.category_weights</Btn>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card style={{ padding: '14px 18px' }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 10 }}>
+          Provenance legend
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {[
+            ['found · reusing', T.emerald, 'Table exists in prod, already used by other features'],
+            ['found · asking', T.primary, 'Table exists, Artisan needs permission to read'],
+            ['two candidates', T.amber, 'Artisan found 2+ tables that match — you decide'],
+            ['does not exist', T.red, 'Artisan will create the table and seed it for you'],
+          ].map(([label, color, desc]) => (
+            <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <Tag color={color} bg={color + '18'} style={{ minWidth: 120 }}>{label}</Tag>
+              <span style={{ fontSize: 12, color: T.t3 }}>{desc}</span>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/* ── Screen 3: Spec Card ── */
+const SpecScreen = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div>
+      <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+        The plan, in plain language
+      </h1>
+      <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+        This is what Artisan will build. Read it. Push back on anything.
+      </p>
+    </div>
+
+    <Card>
+      <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+        Feature summary
+      </p>
+      <p style={{ fontSize: 15, color: T.t1, lineHeight: 1.65 }}>
+        Expert Picks shows the top 5 curator-selected items per category on the home screen.
+        Items refresh every 24 hours via a scheduled job. Personalisation exclusions (blocked brands, dietary preferences) are respected.
+        When a category has fewer than 5 experts, all available items are shown.
+      </p>
+    </Card>
+
+    {/* Steps flow */}
+    <Card>
+      <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
+        What Artisan will do
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {[
+          ['Query expert_picks table, filter by category', 'Read'],
+          ['Apply personalisation exclusions from user_preferences', 'Read'],
+          ['Sort by curator_score, return top 5 per category', 'Logic'],
+          ['Cache result per user segment (TTL 24h)', 'Write'],
+          ['Add ExpertPicksShelf component to HomeScreen', 'UI'],
+          ['Feature flag: EXPERT_PICKS_ENABLED', 'Config'],
+        ].map(([step, type], i, arr) => (
+          <div key={i} style={{ display: 'flex', gap: 12, position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: '50%', background: T.primary10,
+                border: `1.5px solid ${T.primary}40`, display: 'flex', alignItems: 'center',
+                justifyContent: 'center', zIndex: 1, flexShrink: 0, marginTop: 10,
+              }}>
+                <span style={{ fontSize: 10, color: T.primary, fontWeight: 600 }}>{i + 1}</span>
+              </div>
+              {i < arr.length - 1 && (
+                <div style={{ width: 1.5, flex: 1, background: T.border, marginTop: 2 }} />
+              )}
+            </div>
+            <div style={{ paddingBottom: i < arr.length - 1 ? 16 : 0, paddingTop: 8 }}>
+              <span style={{ fontSize: 14, color: T.t1 }}>{step}</span>
+              <span style={{ fontSize: 11, color: T.t3, marginLeft: 8 }}>
+                <Tag color={T.t3}>{type}</Tag>
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
+
+    <div style={{ display: 'flex', gap: 10 }}>
+      <Btn style={{ flex: 1 }}>Looks right, start building</Btn>
+      <Btn variant="ghost">I have changes</Btn>
+    </div>
+  </div>
+);
+
+/* ── Screen 4: Handoff Decision ── */
+const HandoffScreen = () => {
+  const [choice, setChoice] = useState(null);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          How involved do you want to be?
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          You can watch every step, check in at the end, or hand it off to engineering. Your call.
+        </p>
+      </div>
+
+      {[
+        {
+          id: 'watch',
+          icon: '👁',
+          title: 'Watch live',
+          subtitle: 'Follow Artisan step-by-step as it builds',
+          detail: 'You see every decision in real time. Artisan pauses and asks before anything risky.',
+          badge: null,
+        },
+        {
+          id: 'review',
+          icon: '✓',
+          title: 'Review when done',
+          subtitle: 'Artisan builds, you approve before merge',
+          detail: 'Artisan runs to completion, then shows you a summary. You sign off or request changes.',
+          badge: 'Recommended',
+        },
+        {
+          id: 'engineering',
+          icon: '↗',
+          title: 'Hand to engineering',
+          subtitle: 'Forward the spec + context to your EM',
+          detail: 'Artisan generates a full engineering brief with all context it gathered. Your EM takes it from here.',
+          badge: null,
+        },
+      ].map((opt) => (
+        <div
+          key={opt.id}
+          onClick={() => setChoice(opt.id)}
+          style={{
+            background: T.s1,
+            border: `1.5px solid ${choice === opt.id ? T.primary : T.border}`,
+            borderRadius: 14,
+            padding: '16px 18px',
+            cursor: 'pointer',
+            transition: 'border-color 0.15s',
+          }}
+        >
+          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+            <div style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: choice === opt.id ? T.primary10 : T.s2,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 18, flexShrink: 0, transition: 'background 0.15s',
+            }}>
+              {opt.icon}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                <span style={{ fontSize: 15, fontWeight: 600, color: T.t1 }}>{opt.title}</span>
+                {opt.badge && <Tag color={T.primary} bg={T.primary10}>{opt.badge}</Tag>}
+              </div>
+              <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{opt.subtitle}</p>
+              {choice === opt.id && (
+                <div style={{ marginTop: 10, padding: '10px 12px', background: T.s2, borderRadius: 8 }}>
+                  <p style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>{opt.detail}</p>
+                </div>
+              )}
+            </div>
+            <div style={{
+              width: 18, height: 18, borderRadius: '50%', marginTop: 10, flexShrink: 0,
+              border: `1.5px solid ${choice === opt.id ? T.primary : T.border}`,
+              background: choice === opt.id ? T.primary : 'transparent',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              {choice === opt.id && <span style={{ fontSize: 9, color: T.t1 }}>✓</span>}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {choice && (
+        <div style={{ animation: 'fadeUp 0.2s ease both' }}>
+          <Btn style={{ width: '100%' }}>
+            {choice === 'watch' ? 'Start watching →' : choice === 'review' ? 'Build and notify me →' : 'Generate engineering brief →'}
+          </Btn>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Screen 5: Live Build Feed ── */
+const LiveBuildScreen = () => {
+  const steps = [
+    { status: 'done', label: 'Read expert_picks schema', time: '0:04', detail: '3 tables, 12 columns' },
+    { status: 'done', label: 'Confirm personalisation lib is compatible', time: '0:09', detail: 'Version 2.4.1 ✓' },
+    { status: 'active', label: 'Writing ExpertPicksShelf component', time: 'now', detail: null },
+    { status: 'pending', label: 'Write API endpoint /picks/{category}', time: null, detail: null },
+    { status: 'pending', label: 'Set up 24h cache invalidation job', time: null, detail: null },
+    { status: 'pending', label: 'Add feature flag EXPERT_PICKS_ENABLED', time: null, detail: null },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: T.emerald, display: 'inline-block' }} />
+          <span style={{ fontSize: 13, color: T.emerald, fontWeight: 500 }}>Building now</span>
+        </div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          Artisan is writing your code
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          2 of 6 steps complete. Estimated finish: 7 minutes.
+        </p>
+      </div>
+
+      <ProgressBar value={33} height={4} />
+
+      {/* Step list */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {steps.map((s, i, arr) => (
+          <div key={i} style={{ display: 'flex', gap: 12, position: 'relative' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 22, flexShrink: 0 }}>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%', marginTop: 8, flexShrink: 0,
+                background: s.status === 'done' ? T.emerald10 : s.status === 'active' ? T.primary10 : T.s2,
+                border: `1.5px solid ${s.status === 'done' ? T.emerald : s.status === 'active' ? T.primary : T.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {s.status === 'done' && <span style={{ fontSize: 10, color: T.emerald }}>✓</span>}
+                {s.status === 'active' && <Spinner size={10} />}
+                {s.status === 'pending' && <span style={{ fontSize: 8, color: T.t3 }}>○</span>}
+              </div>
+              {i < arr.length - 1 && (
+                <div style={{ width: 1.5, flex: 1, background: T.border, marginTop: 2, marginBottom: 0 }} />
+              )}
+            </div>
+            <div style={{ paddingBottom: i < arr.length - 1 ? 16 : 0, paddingTop: 6 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                <span style={{ fontSize: 14, color: s.status === 'pending' ? T.t3 : T.t1 }}>{s.label}</span>
+                {s.time && <span style={{ fontSize: 11, color: T.t3 }}>{s.time}</span>}
+              </div>
+              {s.detail && (
+                <p style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{s.detail}</p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Diff preview */}
+      <Card>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            Being written now
+          </p>
+          <Tag color={T.t3}>ExpertPicksShelf.tsx</Tag>
+        </div>
+        <div style={{
+          fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7,
+          background: T.s2, borderRadius: 8, padding: '12px 14px',
+          color: T.t3,
+        }}>
+          <div style={{ color: T.emerald }}>+ export const ExpertPicksShelf = ({'{'} categoryId {'}'}) =&gt; {'{'}</div>
+          <div style={{ color: T.emerald }}>+   const picks = useExpertPicks(categoryId);</div>
+          <div style={{ color: T.emerald }}>+   if (!picks.length) return null;</div>
+          <div style={{ color: T.t3 }}>    return (</div>
+          <div style={{ paddingLeft: 14, color: T.t3 }}>...</div>
+        </div>
+      </Card>
+
+      <Btn variant="ghost" style={{ alignSelf: 'flex-start' }}>Ask a question</Btn>
+    </div>
+  );
+};
+
+/* ── Screen 6: Self-Correction Summary ── */
+const SelfCorrectionScreen = () => {
+  const fixes = [
+    {
+      what: 'Added null check for empty picks array',
+      why: 'Component would crash on uncached first load',
+      impact: 'Prevented a runtime error',
+      severity: 'high',
+    },
+    {
+      what: 'Switched from .map() to .slice(0, 5).map()',
+      why: 'Query could return more than 5 items on category edge cases',
+      impact: 'Ensured consistent 5-item limit',
+      severity: 'medium',
+    },
+    {
+      what: 'Added loading skeleton, not empty div',
+      why: 'Layout shift would score CLS 0.4+ on slow connections',
+      impact: 'Kept CLS under 0.1',
+      severity: 'low',
+    },
+  ];
+
+  const sevColor = { high: T.red, medium: T.amber, low: T.emerald };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+          <Tag color={T.emerald} bg={T.emerald10}>Before you saw it</Tag>
+        </div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          3 things Artisan fixed itself
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          These aren't bugs you'd have caught in QA — they're the kind of edge cases that reach prod.
+        </p>
+      </div>
+
+      {fixes.map((f, i) => (
+        <Card key={i}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 10 }}>
+            <div style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: sevColor[f.severity], marginTop: 6, flexShrink: 0,
+            }} />
+            <p style={{ fontSize: 15, fontWeight: 500, color: T.t1, lineHeight: 1.4 }}>{f.what}</p>
+          </div>
+          <div style={{ paddingLeft: 16 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div>
+                <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why </span>
+                <span style={{ fontSize: 13, color: T.t2 }}>{f.why}</span>
+              </div>
+              <div>
+                <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Result </span>
+                <span style={{ fontSize: 13, color: T.emerald }}>{f.impact}</span>
+              </div>
+            </div>
+          </div>
+        </Card>
+      ))}
+
+      <div style={{ padding: '12px 16px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
+        <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
+          Artisan flags everything it changes. Nothing is hidden.
+        </p>
+      </div>
+    </div>
+  );
+};
+
+/* ── Screen 7: PM Correction Loop (Flowchart View) ── */
+const CorrectionLoopScreen = () => {
+  const [view, setView] = useState('flow');
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          Something doesn't look right?
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          Tell Artisan what's wrong in plain language. It handles the fix.
+        </p>
+      </div>
+
+      {/* View toggle */}
+      <div style={{ display: 'flex', gap: 4, padding: 4, background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
+        {['flow', 'diff', 'code'].map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            style={{
+              flex: 1, padding: '8px 12px', borderRadius: 7, border: 'none',
+              background: view === v ? T.s2 : 'transparent',
+              color: view === v ? T.t1 : T.t3,
+              fontSize: 13, fontWeight: 500, cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+          >
+            {v === 'flow' ? 'Flowchart' : v === 'diff' ? 'Annotated diff' : 'Raw code'}
+          </button>
+        ))}
+      </div>
+
+      {view === 'flow' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'fadeUp 0.2s ease both' }}>
+          {[
+            ['User opens home screen', T.primary, '→'],
+            ['Artisan checks EXPERT_PICKS_ENABLED flag', T.s2, '↓'],
+            ['Fetch expert_picks WHERE category = X', T.s2, '↓'],
+            ['Apply personalisation exclusions', T.s2, '↓'],
+            ['Sort by curator_score DESC', T.s2, '↓'],
+            ['Return top 5 (or all if < 5)', T.amber + '20', '↓'],
+            ['Render ExpertPicksShelf', T.emerald + '20', null],
+          ].map(([label, bg, arrow], i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ padding: '10px 16px', background: bg, border: `1px solid ${T.border}`, borderRadius: 8, width: '100%' }}>
+                <span style={{ fontSize: 13, color: T.t1 }}>{label}</span>
+              </div>
+              {arrow && <span style={{ color: T.t3, fontSize: 16, marginTop: 2 }}>{arrow}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {view === 'diff' && (
+        <Card style={{ animation: 'fadeUp 0.2s ease both' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7 }}>
+            <div style={{ color: T.t3, marginBottom: 8 }}>expertPicksService.ts · Line 42</div>
+            <div style={{ color: T.red, background: T.red + '10', padding: '2px 6px', borderRadius: 4, marginBottom: 2 }}>
+              - const picks = await db.query('SELECT * FROM expert_picks');
+            </div>
+            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
+              + const picks = await db.query(
+            </div>
+            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px 2px 20px', borderRadius: 4 }}>
+              +   'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',
+            </div>
+            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
+              +   [categoryId]
+            </div>
+            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
+              + );
+            </div>
+            <div style={{ marginTop: 8, padding: '8px 10px', background: T.primary10, borderRadius: 6 }}>
+              <span style={{ fontSize: 11, color: T.primary }}>Why: Added category filter and 5-item limit. Prevents over-fetching.</span>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      {view === 'code' && (
+        <Card style={{ animation: 'fadeUp 0.2s ease both' }}>
+          <div style={{ fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7, color: T.t2 }}>
+            <div><span style={{ color: T.violet }}>export async function</span> <span style={{ color: T.primary }}>getExpertPicks</span>(categoryId: string) {'{'}</div>
+            <div style={{ paddingLeft: 14 }}><span style={{ color: T.violet }}>const</span> picks = <span style={{ color: T.violet }}>await</span> db.query(</div>
+            <div style={{ paddingLeft: 28 }}>'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',</div>
+            <div style={{ paddingLeft: 28 }}>[categoryId]</div>
+            <div style={{ paddingLeft: 14 }}>);</div>
+            <div style={{ paddingLeft: 14 }}><span style={{ color: T.violet }}>return</span> applyPersonalisationFilter(picks, <span style={{ color: T.violet }}>await</span> getUserPrefs());</div>
+            <div>{'}'}</div>
+          </div>
+        </Card>
+      )}
+
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input
+          placeholder="Tell Artisan what to change..."
+          style={{
+            flex: 1, padding: '11px 14px', borderRadius: 10,
+            background: T.s1, border: `1px solid ${T.border}`,
+            color: T.t1, fontSize: 14, fontFamily: font.inter,
+            outline: 'none',
+          }}
+        />
+        <Btn size="md">Fix it</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ── Screen 8: Evidence Stack ── */
+const EvidenceScreen = () => {
+  const [open, setOpen] = useState(null);
+  const items = [
+    {
+      id: 0, icon: '✓', label: 'Does it look right?', color: T.emerald,
+      items: ['Figma mock #88 · pixel match 94%', 'Dark mode tested · contrast 5.2:1', 'Loading skeleton matches brand spec'],
+    },
+    {
+      id: 1, icon: '⚙', label: 'Does it work?', color: T.primary,
+      items: ['34 unit tests · 34 passing', 'Edge case: 0 picks → empty state shown', 'Edge case: 1 pick → layout holds', 'Personalisation filter: 12/12 test cases pass'],
+    },
+    {
+      id: 2, icon: '◈', label: 'Did it break anything?', color: T.amber,
+      items: ['0 regressions in CI (847 tests)', 'Trending Shelf unaffected (shared lib)', 'Home screen perf: unchanged (TTI 1.2s)'],
+    },
+    {
+      id: 3, icon: '⬡', label: 'Is the code good?', color: T.violet,
+      items: ['No new lint errors', 'Coverage: 94% (+2% from new tests)', 'Complexity score: 4 (was 4)'],
+    },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          The evidence
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          Everything Artisan checked, in one place. Open any card for the full trace.
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {items.map((item) => {
+          const isOpen = open === item.id;
+          return (
+            <div
+              key={item.id}
+              onClick={() => setOpen(isOpen ? null : item.id)}
+              style={{
+                background: T.s1, border: `1px solid ${isOpen ? item.color + '40' : T.border}`,
+                borderRadius: 12, overflow: 'hidden',
+                cursor: 'pointer', transition: 'border-color 0.15s',
+              }}
+            >
+              <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    background: item.color + '15', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', fontSize: 14, color: item.color,
+                  }}>
+                    {item.icon}
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 500, color: T.t1 }}>{item.label}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: item.color, fontFamily: 'monospace' }}>
+                    ● {item.items.length} checks
+                  </span>
+                  <span style={{ color: T.t3, fontSize: 11 }}>{isOpen ? '▲' : '▼'}</span>
+                </div>
+              </div>
+              {isOpen && (
+                <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 16px 14px' }}>
+                  {item.items.map((it, j) => (
+                    <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'center', paddingBottom: j < item.items.length - 1 ? 8 : 0 }}>
+                      <span style={{ color: T.emerald, fontSize: 11, fontFamily: 'monospace' }}>✓</span>
+                      <span style={{ fontSize: 13, color: T.t2 }}>{it}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <Card style={{ padding: '14px 16px', background: T.emerald10, borderColor: T.emerald + '30' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ color: T.emerald, fontSize: 18 }}>✓</span>
+          <p style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>
+            All 4 fear categories resolved
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+/* ── Screen 9: Safety Net ── */
+const SafetyScreen = () => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div>
+      <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+        What if something goes wrong?
+      </h1>
+      <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+        Three layers of protection are in place before this ships.
+      </p>
+    </div>
+
+    {[
+      {
+        title: 'Feature flag',
+        color: T.emerald,
+        icon: '⚑',
+        lines: [
+          'EXPERT_PICKS_ENABLED defaults to false',
+          'Rollout: 5% → 20% → 100% over 3 days',
+          'Artisan monitors error rate at each threshold',
+        ],
+      },
+      {
+        title: 'Automatic rollback trigger',
+        color: T.amber,
+        icon: '↩',
+        lines: [
+          'Error rate > 0.5% for 5 minutes → auto-disable flag',
+          'On-call engineer notified via PagerDuty',
+          'Artisan writes incident report automatically',
+        ],
+      },
+      {
+        title: 'What Artisan can't undo',
+        color: T.t3,
+        icon: '△',
+        lines: [
+          'Cache writes persist for up to 24h after rollback',
+          'Analytics events already sent can't be recalled',
+          'PR merge is permanent — rollback via revert PR',
+        ],
+      },
+    ].map((s, i) => (
+      <Card key={i} style={{ borderColor: s.color + '30' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 8, background: s.color + '15',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: s.color, fontSize: 15, flexShrink: 0,
+          }}>
+            {s.icon}
+          </div>
+          <div>
+            <p style={{ fontSize: 15, fontWeight: 600, color: T.t1, marginBottom: 8 }}>{s.title}</p>
+            {s.lines.map((l, j) => (
+              <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
+                <span style={{ color: s.color, fontSize: 11, marginTop: 3, flexShrink: 0 }}>—</span>
+                <span style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{l}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    ))}
+
+    <div style={{ padding: '12px 16px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
+      <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
+        <strong style={{ color: T.t1 }}>Artisan's commitment:</strong> It will never merge without your explicit sign-off. The flag is yours to control.
+      </p>
+    </div>
+  </div>
+);
+
+/* ── Screen 10: Ship Moment ── */
+const ShipScreen = () => {
+  const [shipped, setShipped] = useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, textAlign: 'center', paddingTop: 8 }}>
+      {!shipped ? (
+        <>
+          <div>
+            <div style={{
+              width: 72, height: 72, borderRadius: '50%',
+              background: T.emerald10, border: `2px solid ${T.emerald}40`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px', fontSize: 28,
+            }}>
+              🚀
+            </div>
+            <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+              Ready to ship
+            </h1>
+            <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+              Expert Picks is built, tested, and waiting on your word.
+            </p>
+          </div>
+
+          {/* Final checklist */}
+          <Card style={{ textAlign: 'left' }}>
+            {[
+              ['34 tests passing', T.emerald],
+              ['0 regressions', T.emerald],
+              ['Feature flag ready', T.emerald],
+              ['Rollback plan in place', T.emerald],
+              ['Spec matched (1 safe default)', T.amber],
+            ].map(([l, c], i) => (
+              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', paddingBottom: i < 4 ? 10 : 0 }}>
+                <span style={{ fontSize: 12, color: c, fontFamily: 'monospace' }}>{c === T.emerald ? '●' : '◐'}</span>
+                <span style={{ fontSize: 14, color: T.t1 }}>{l}</span>
+              </div>
+            ))}
+          </Card>
+
+          <div>
+            <Btn variant="success" size="lg" onClick={() => setShipped(true)} style={{ width: '100%', marginBottom: 10 }}>
+              Ship to 5% of users
+            </Btn>
+            <p style={{ fontSize: 12, color: T.t3 }}>
+              Artisan will monitor the rollout and alert you if error rate exceeds 0.5%
+            </p>
+          </div>
+        </>
+      ) : (
+        <div style={{ animation: 'fadeUp 0.3s ease both', paddingTop: 16 }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: T.emerald10, border: `2px solid ${T.emerald}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 20px', fontSize: 28,
+          }}>
+            ✓
+          </div>
+          <h1 style={{ fontFamily: font.grotesk, fontSize: 28, fontWeight: 700, color: T.t1, marginBottom: 8 }}>
+            Shipped.
+          </h1>
+          <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6, marginBottom: 20 }}>
+            Expert Picks is live for 5% of users. Artisan is watching.
+          </p>
+          <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+            <div style={{ padding: '12px 14px', background: T.emerald10, borderRadius: 10, border: `1px solid ${T.emerald}30` }}>
+              <p style={{ fontSize: 13, color: T.emerald }}>PR #284 merged · main ← feature/expert-picks</p>
+            </div>
+            <div style={{ padding: '12px 14px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
+              <p style={{ fontSize: 13, color: T.t2 }}>24h rollout report will land in your inbox</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── Screen 11: 24h Report ── */
+const ReportScreen = () => {
+  const metrics = [
+    { label: 'Error rate', value: '0.02%', target: '< 0.5%', status: 'good' },
+    { label: 'Click-through', value: '6.4%', target: '> 4% target', status: 'good' },
+    { label: 'Avg picks loaded', value: '4.8', target: '≤ 5 expected', status: 'good' },
+    { label: 'Users affected', value: '0', target: '0', status: 'neutral' },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div>
+        <Tag color={T.emerald} bg={T.emerald10} style={{ marginBottom: 8 }}>24h post-ship</Tag>
+        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
+          Expert Picks is healthy
+        </h1>
+        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
+          5% rollout complete. No incidents. Artisan recommends expanding to 20%.
+        </p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        {metrics.map((m, i) => (
+          <div key={i} style={{
+            background: T.s1, border: `1px solid ${T.border}`,
+            borderRadius: 12, padding: '14px 16px',
+          }}>
+            <p style={{ fontSize: 12, color: T.t3, marginBottom: 4 }}>{m.label}</p>
+            <p style={{
+              fontFamily: font.grotesk, fontSize: 22, fontWeight: 700,
+              color: m.status === 'good' ? T.emerald : m.status === 'bad' ? T.red : T.t1,
+              marginBottom: 2,
+            }}>{m.value}</p>
+            <p style={{ fontSize: 11, color: T.t3 }}>{m.target}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Rollout plan */}
+      <Card>
+        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
+          Rollout plan
+        </p>
+        {[
+          { label: '5% — complete', done: true },
+          { label: '20% — Artisan recommends now', active: true },
+          { label: '100% — after 24h at 20%', done: false },
+        ].map((r, i) => (
+          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: i < 2 ? 10 : 0 }}>
+            <span style={{ fontFamily: 'monospace', fontSize: 11, color: r.done ? T.emerald : r.active ? T.primary : T.t3 }}>
+              {r.done ? '●' : r.active ? '◎' : '○'}
+            </span>
+            <span style={{ fontSize: 14, color: r.active ? T.t1 : T.t2 }}>{r.label}</span>
+          </div>
+        ))}
+      </Card>
+
+      <div style={{ display: 'flex', gap: 10 }}>
+        <Btn variant="success" style={{ flex: 1 }}>Expand to 20%</Btn>
+        <Btn variant="ghost">View full report</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ─────────────────────────────── SCREEN CONFIG ────────────────────────── */
+const SCREENS = [
+  { name: 'Feasibility',       Component: FeasibilityScreen },
+  { name: 'Requirements',      Component: RequirementsScreen },
+  { name: 'Data sources',      Component: DataDiscoveryScreen },
+  { name: 'The plan',          Component: SpecScreen },
+  { name: 'Handoff',           Component: HandoffScreen },
+  { name: 'Live build',        Component: LiveBuildScreen },
+  { name: 'Self-corrections',  Component: SelfCorrectionScreen },
+  { name: 'Your changes',      Component: CorrectionLoopScreen },
+  { name: 'Evidence',          Component: EvidenceScreen },
+  { name: 'Safety net',        Component: SafetyScreen },
+  { name: 'Ship moment',       Component: ShipScreen },
+  { name: '24h report',        Component: ReportScreen },
+];
+
+/* ─────────────────────────────── APP SHELL ──────────────────────────────  */
+const App = () => {
+  const [screen, setScreen] = useState(0);
+  const [animKey, setAnimKey] = useState(0);
+  const total = SCREENS.length;
+
+  const go = useCallback((n) => {
+    if (n < 0 || n >= total) return;
+    setScreen(n);
+    setAnimKey(k => k + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [total]);
+
+  const pct = ((screen + 1) / total) * 100;
+  const { Component } = SCREENS[screen];
+
+  /* Keyboard navigation */
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'ArrowRight') go(screen + 1);
+      if (e.key === 'ArrowLeft')  go(screen - 1);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [screen, go]);
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.bg, maxWidth: 480, margin: '0 auto', position: 'relative' }}>
+      {/* Progress bar — top of screen */}
+      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, background: T.s2, zIndex: 50 }}>
+        <div style={{
+          height: '100%', background: T.primary,
+          width: `${pct}%`, transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        }} />
+      </div>
+
+      {/* Top bar */}
+      <header style={{
+        position: 'fixed', top: 3, left: 0, right: 0, zIndex: 40,
+        height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 20px',
+        background: T.bg + 'f0',
+        backdropFilter: 'blur(12px)',
+        borderBottom: `1px solid ${T.border}`,
+        maxWidth: 480, margin: '0 auto',
+      }}>
+        <span style={{ fontSize: 15, fontWeight: 700, fontFamily: font.grotesk, color: T.t1, letterSpacing: '-0.02em' }}>
+          Artisan
+        </span>
+        <span style={{ fontSize: 13, fontWeight: 500, color: T.t2, position: 'absolute', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap' }}>
+          {SCREENS[screen].name}
+        </span>
+        <span style={{ fontSize: 12, color: T.t3, fontFamily: 'monospace' }}>
+          {screen + 1} / {total}
+        </span>
+      </header>
+
+      {/* Scrollable content */}
+      <main style={{
+        flex: 1,
+        marginTop: 59,
+        marginBottom: 72,
+        overflowY: 'auto',
+        padding: '24px 20px 8px',
+      }}>
+        <div key={animKey} className="screen-enter">
+          <Component />
+        </div>
+      </main>
+
+      {/* Bottom nav */}
+      <footer style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
+        height: 68,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+        background: T.bg + 'f0',
+        backdropFilter: 'blur(12px)',
+        borderTop: `1px solid ${T.border}`,
+        maxWidth: 480, margin: '0 auto',
+        gap: 12,
+      }}>
+        <Btn
+          variant="ghost"
+          onClick={() => go(screen - 1)}
+          disabled={screen === 0}
+          style={{ minWidth: 80 }}
+        >
+          ← Back
+        </Btn>
+
+        {/* Dot nav — tap to jump */}
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center', flex: 1, justifyContent: 'center', flexWrap: 'wrap' }}>
+          {Array.from({ length: total }).map((_, i) => (
+            <button
+              key={i}
+              onClick={() => go(i)}
+              aria-label={`Go to screen ${i + 1}: ${SCREENS[i].name}`}
+              style={{
+                width: i === screen ? 20 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: i === screen ? T.primary : i < screen ? T.primary + '55' : T.s3,
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0,
+                transition: 'width 0.2s ease, background 0.2s ease',
+                minHeight: 20, // tap target height
+              }}
+            />
+          ))}
+        </div>
+
+        <Btn
+          onClick={() => go(screen + 1)}
+          disabled={screen === total - 1}
+          style={{ minWidth: 80 }}
+        >
+          Next →
+        </Btn>
+      </footer>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
