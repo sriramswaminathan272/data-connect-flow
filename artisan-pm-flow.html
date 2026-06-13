@@ -14,1105 +14,698 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #030712;
-  --s1: #0F172A;
-  --s2: #1E293B;
-  --s3: #263145;
-  --border: #1E293B;
-  --border-h: #334155;
-  --primary: #4F46E5;
-  --primary-h: #4338CA;
-  --primary-10: rgba(79,70,229,0.10);
-  --primary-20: rgba(79,70,229,0.20);
-  --emerald: #10B981;
-  --emerald-10: rgba(16,185,129,0.10);
-  --amber: #F59E0B;
-  --amber-10: rgba(245,158,11,0.10);
-  --red: #EF4444;
-  --red-10: rgba(239,68,68,0.10);
-  --violet: #8B5CF6;
-  --t1: #F8FAFC;
-  --t2: #94A3B8;
-  --t3: #475569;
+  --bg:       #060B17;
+  --s1:       #0D1526;
+  --s2:       #162033;
+  --s3:       #1E2D45;
+  --border:   #1E2D45;
+  --border-h: #2D4060;
+  --primary:  #4F46E5;
+  --emerald:  #10B981;
+  --amber:    #F59E0B;
+  --red:      #EF4444;
+  --violet:   #8B5CF6;
+  --t1:       #F1F5F9;
+  --t2:       #94A3B8;
+  --t3:       #4A6080;
 }
 
-html, body { height: 100%; background: var(--bg); }
+html, body, #root { height: 100%; background: var(--bg); }
+body { font-family: 'Inter', system-ui, sans-serif; color: var(--t1); -webkit-font-smoothing: antialiased; font-size: 15px; line-height: 1.6; }
 
-body {
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--t1);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
-  font-size: 16px;
-}
-
-#root { height: 100%; }
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--s3); border-radius: 3px; }
 
-/* Animations */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-@keyframes progressFill {
-  from { width: 0; }
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.4; }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+@keyframes spin  { to { transform: rotate(360deg); } }
 
-.screen-enter { animation: fadeUp 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.pulse-dot { animation: pulse 1.8s ease-in-out infinite; }
-.spin { animation: spin 1s linear infinite; }
+.screen-enter { animation: fadeUp 0.2s cubic-bezier(0.22,1,0.36,1) both; }
+.pulse-dot    { animation: pulse 2s ease-in-out infinite; }
+.spin         { animation: spin 1s linear infinite; }
 
-/* Focus styles — accessibility */
-:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-
-/* Remove 300ms tap delay on mobile */
-button, a, [role="button"] { touch-action: manipulation; }
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 5px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+button, a { touch-action: manipulation; }
 </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-const { useState, useEffect, useCallback, useRef } = React;
+const { useState, useEffect, useCallback } = React;
 
-/* ─────────────────────────────── TOKENS ─────────────────────────────── */
+/* ── Tokens ── */
 const T = {
-  bg: '#030712', s1: '#0F172A', s2: '#1E293B', s3: '#263145',
-  border: '#1E293B', borderH: '#334155',
-  primary: '#4F46E5', primaryH: '#4338CA', primary10: 'rgba(79,70,229,0.10)', primary20: 'rgba(79,70,229,0.20)',
-  emerald: '#10B981', emerald10: 'rgba(16,185,129,0.10)',
-  amber: '#F59E0B', amber10: 'rgba(245,158,11,0.10)',
-  red: '#EF4444', red10: 'rgba(239,68,68,0.10)',
-  violet: '#8B5CF6',
-  t1: '#F8FAFC', t2: '#94A3B8', t3: '#475569',
+  bg:'#060B17', s1:'#0D1526', s2:'#162033', s3:'#1E2D45',
+  border:'#1E2D45', borderH:'#2D4060',
+  primary:'#4F46E5', primaryH:'#4338CA',
+  p10:'rgba(79,70,229,.10)', p20:'rgba(79,70,229,.20)',
+  emerald:'#10B981', e10:'rgba(16,185,129,.10)',
+  amber:'#F59E0B',   a10:'rgba(245,158,11,.10)',
+  red:'#EF4444',     r10:'rgba(239,68,68,.10)',
+  violet:'#8B5CF6',
+  t1:'#F1F5F9', t2:'#94A3B8', t3:'#4A6080',
 };
+const G = "'Space Grotesk',sans-serif";
+const I = "'Inter',sans-serif";
 
-const font = { grotesk: "'Space Grotesk', sans-serif", inter: "'Inter', sans-serif" };
-
-/* ─────────────────────────────── PRIMITIVES ─────────────────────────── */
-
-const Tag = ({ color = T.t3, bg, children, icon, style: sx }) => (
+/* ── Primitives ── */
+const Tag = ({ color=T.t3, bg, children, sx }) => (
   <span style={{
-    display: 'inline-flex', alignItems: 'center', gap: 4,
-    padding: '3px 8px', borderRadius: 5,
-    fontSize: 11, fontWeight: 500, letterSpacing: '0.02em',
-    color, background: bg || color + '18',
-    fontFamily: font.inter,
-    ...sx,
-  }}>
-    {icon && <span style={{ fontSize: 9 }}>{icon}</span>}
-    {children}
-  </span>
+    display:'inline-flex', alignItems:'center', gap:4,
+    padding:'3px 9px', borderRadius:5,
+    fontSize:11, fontWeight:500, letterSpacing:'0.03em',
+    color, background: bg || color+'1a', fontFamily:I, ...sx,
+  }}>{children}</span>
 );
 
-const Verified = ({ label, type = 'verified' }) => {
-  const map = {
-    verified: { dot: '●', color: T.emerald, label: label || 'verified' },
-    inferred: { dot: '◐', color: T.amber,   label: label || 'inferred' },
-    suggested:{ dot: '○', color: T.t3,      label: label || 'suggested' },
-  };
-  const m = map[type];
+const Dot = ({ type='verified', label }) => {
+  const m = { verified:{ch:'●',c:T.emerald}, inferred:{ch:'◐',c:T.amber}, suggested:{ch:'○',c:T.t3} }[type];
   return (
-    <span style={{ fontSize: 13, fontWeight: 500, color: m.color, fontFamily: 'monospace', letterSpacing: '0.01em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-      <span style={{ fontSize: 10 }}>{m.dot}</span> {m.label}
+    <span style={{fontSize:12,fontWeight:500,color:m.c,fontFamily:'monospace',display:'inline-flex',alignItems:'center',gap:5}}>
+      <span style={{fontSize:9}}>{m.ch}</span>{label||type}
     </span>
   );
 };
 
-const Divider = () => (
-  <div style={{ height: 1, background: T.border, margin: '20px 0' }} />
-);
-
-/* Card component — the core container */
-const Card = ({ children, style, hover }) => {
-  const [hovered, setHovered] = useState(false);
+const Card = ({ children, style, onClick, hover }) => {
+  const [h,setH] = useState(false);
   return (
-    <div
-      onMouseEnter={() => hover && setHovered(true)}
-      onMouseLeave={() => hover && setHovered(false)}
-      style={{
-        background: T.s1,
-        border: `1px solid ${hovered ? T.borderH : T.border}`,
-        borderRadius: 16,
-        padding: 24,
-        transition: 'border-color 0.15s ease',
-        ...style,
-      }}
-    >
+    <div onClick={onClick} onMouseEnter={()=>(hover||onClick)&&setH(true)} onMouseLeave={()=>setH(false)}
+      style={{ background:T.s1, border:`1px solid ${h?T.borderH:T.border}`, borderRadius:14, padding:28,
+               cursor:onClick?'pointer':'default', transition:'border-color .15s', ...style }}>
       {children}
     </div>
   );
 };
 
-/* Progress bar inside a card */
-const ProgressBar = ({ value, color = T.primary, bg = T.s2, height = 6 }) => (
-  <div style={{ height, background: bg, borderRadius: height / 2, overflow: 'hidden' }}>
-    <div style={{
-      height: '100%', width: `${value}%`,
-      background: color, borderRadius: height / 2,
-      transition: 'width 0.6s ease',
-    }} />
+const SLabel = ({ children }) => (
+  <p style={{fontSize:11,fontWeight:600,color:T.t3,letterSpacing:'0.08em',textTransform:'uppercase',marginBottom:14,fontFamily:I}}>{children}</p>
+);
+
+const Bar = ({ value, color=T.primary, h=4 }) => (
+  <div style={{height:h,background:T.s3,borderRadius:h/2,overflow:'hidden'}}>
+    <div style={{height:'100%',width:`${value}%`,background:color,transition:'width .5s ease',borderRadius:h/2}}/>
   </div>
 );
 
-/* Score pill */
-const ScorePill = ({ label, value, color = T.primary }) => (
-  <div style={{
-    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
-    padding: '12px 20px', background: color + '15',
-    border: `1px solid ${color}30`, borderRadius: 12,
-    minWidth: 90,
-  }}>
-    <span style={{ fontSize: 24, fontWeight: 700, fontFamily: font.grotesk, color, lineHeight: 1 }}>{value}</span>
-    <span style={{ fontSize: 11, color: T.t2, letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
-  </div>
+const Spinner = ({size=14}) => (
+  <span className="spin" style={{display:'inline-block',width:size,height:size,border:`2px solid ${T.s3}`,borderTopColor:T.primary,borderRadius:'50%'}}/>
 );
 
-/* Inline spinner */
-const Spinner = ({ size = 16 }) => (
-  <span className="spin" style={{
-    display: 'inline-block',
-    width: size, height: size,
-    border: `2px solid ${T.s2}`,
-    borderTopColor: T.primary,
-    borderRadius: '50%',
-  }} />
-);
-
-/* ─────────────────────────────── BUTTON ──────────────────────────────── */
-const Btn = ({ children, onClick, disabled, variant = 'primary', size = 'md', style: sx }) => {
-  const [pressed, setPressed] = useState(false);
-  const sizes = {
-    sm: { padding: '8px 14px', fontSize: 13, minHeight: 34 },
-    md: { padding: '11px 20px', fontSize: 14, minHeight: 44 },
-    lg: { padding: '14px 28px', fontSize: 15, minHeight: 52 },
-  };
-  const variants = {
-    primary: {
-      background: disabled ? T.s2 : pressed ? T.primaryH : T.primary,
-      color: disabled ? T.t3 : T.t1,
-      border: 'none',
-    },
-    ghost: {
-      background: 'transparent',
-      color: disabled ? T.t3 : T.t2,
-      border: `1px solid ${T.border}`,
-    },
-    danger: {
-      background: pressed ? '#DC2626' : T.red,
-      color: T.t1,
-      border: 'none',
-    },
-    success: {
-      background: pressed ? '#059669' : T.emerald,
-      color: T.t1,
-      border: 'none',
-    },
-  };
+/* ── Button ── */
+const Btn = ({ children, onClick, disabled, variant='primary', size='md', sx }) => {
+  const [p,setP] = useState(false);
+  const sz = { sm:{padding:'7px 14px',fontSize:13,minHeight:34}, md:{padding:'10px 22px',fontSize:14,minHeight:42}, lg:{padding:'13px 32px',fontSize:15,minHeight:50} }[size];
+  const vr = {
+    primary: { background:disabled?T.s3:p?T.primaryH:T.primary, color:disabled?T.t3:T.t1, border:'none' },
+    ghost:   { background:'transparent', color:disabled?T.t3:T.t2, border:`1px solid ${T.border}` },
+    success: { background:p?'#059669':T.emerald, color:T.t1, border:'none' },
+    subtle:  { background:T.s2, color:T.t2, border:`1px solid ${T.border}` },
+  }[variant];
   return (
-    <button
-      onClick={disabled ? undefined : onClick}
-      onMouseDown={() => setPressed(true)}
-      onMouseUp={() => setPressed(false)}
-      onMouseLeave={() => setPressed(false)}
-      disabled={disabled}
-      style={{
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-        borderRadius: 10,
-        fontFamily: font.inter, fontWeight: 500,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        transition: 'background 0.12s ease, transform 0.1s ease',
-        transform: pressed && !disabled ? 'scale(0.98)' : 'scale(1)',
-        userSelect: 'none',
-        ...sizes[size],
-        ...variants[variant],
-        ...sx,
-      }}
-    >
+    <button onClick={disabled?undefined:onClick} onMouseDown={()=>setP(true)} onMouseUp={()=>setP(false)} onMouseLeave={()=>setP(false)} disabled={disabled}
+      style={{ display:'inline-flex',alignItems:'center',justifyContent:'center',gap:8,borderRadius:9,fontFamily:I,fontWeight:500,
+               cursor:disabled?'not-allowed':'pointer',transition:'background .12s,transform .1s',
+               transform:p&&!disabled?'scale(0.98)':'scale(1)',userSelect:'none',letterSpacing:'-0.01em',
+               ...sz,...vr,...sx }}>
       {children}
     </button>
   );
 };
 
-/* ─────────────────────────────── SCREENS ─────────────────────────────── */
+/* ── Stat card ── */
+const Stat = ({ label, value, sub, color=T.t1, hero }) => (
+  <div style={{
+    padding: hero?'24px 28px':'18px 22px',
+    background: color===T.emerald?T.e10:color===T.primary?T.p10:color===T.amber?T.a10:T.s1,
+    border:`1px solid ${color===T.t1?T.border:color+'30'}`, borderRadius:12,
+  }}>
+    <p style={{fontSize:11,fontWeight:600,color:T.t3,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:6}}>{label}</p>
+    <p style={{fontFamily:G,fontSize:hero?48:28,fontWeight:700,color,lineHeight:1,marginBottom:sub?4:0}}>{value}</p>
+    {sub && <p style={{fontSize:12,color:T.t3,marginTop:4}}>{sub}</p>}
+  </div>
+);
 
-/* ── Screen 0: Feasibility Card ── */
-const FeasibilityScreen = () => {
+/* ═══════ SCREENS ═══════ */
+
+/* 0 · Feasibility */
+const S0 = () => {
   const risks = [
-    { level: 'Low', label: 'Data availability', detail: 'All 3 required tables exist in prod', color: T.emerald },
-    { level: 'Low', label: 'API impact', detail: 'Read-only change, no write endpoints touched', color: T.emerald },
-    { level: 'Medium', label: 'A/B test collision', detail: 'Expert Picks overlaps with 2 live experiments', color: T.amber },
-    { level: 'Low', label: 'Rollback complexity', detail: 'Feature flag exists, kill-switch ready', color: T.emerald },
+    { level:'Low',    label:'Data availability',  detail:'All 3 required tables exist in prod',              color:T.emerald },
+    { level:'Low',    label:'API surface',         detail:'Read-only — no write endpoints touched',            color:T.emerald },
+    { level:'Medium', label:'A/B test collision',  detail:'Expert Picks overlaps 2 live experiments',          color:T.amber  },
+    { level:'Low',    label:'Rollback complexity', detail:'Feature flag in place, kill-switch ready',           color:T.emerald },
   ];
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <Tag color={T.emerald} bg={T.emerald + '15'}>Ready to build</Tag>
+        <div style={{display:'flex',gap:8,marginBottom:12}}>
+          <Tag color={T.emerald}>Ready to build</Tag>
           <Tag color={T.t3}>Expert Picks · Home Screen</Tag>
         </div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          Can we build this?
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          Artisan checked 847 data points across your codebase, past PRs, and team velocity.
-        </p>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>Can we build this?</h1>
+        <p style={{color:T.t2,fontSize:16,maxWidth:560}}>Artisan checked 847 data points across your codebase, past PRs, and team velocity.</p>
       </div>
 
-      {/* Hero score — dominant visual (Von Restorff: the standout number anchors trust) */}
-      <div style={{
-        padding: '20px 24px', borderRadius: 16,
-        background: `linear-gradient(135deg, ${T.emerald}18 0%, ${T.emerald}08 100%)`,
-        border: `1px solid ${T.emerald}30`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div>
-          <p style={{ fontSize: 13, color: T.emerald, fontWeight: 500, marginBottom: 4 }}>Feasibility score</p>
-          <p style={{ fontFamily: font.grotesk, fontSize: 52, fontWeight: 700, color: T.emerald, lineHeight: 1 }}>92%</p>
-          <p style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>847 data points checked</p>
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-          <ScorePill label="Effort" value="4 days" color={T.primary} />
-          <ScorePill label="Risk" value="Low" color={T.amber} />
-        </div>
+      <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr',gap:16}}>
+        <Stat hero label="Feasibility score" value="92%" sub="847 data points checked" color={T.emerald}/>
+        <Stat label="Estimated effort" value="4 days" sub="Based on 3 similar PRs" color={T.primary}/>
+        <Stat label="Overall risk" value="Low" sub="1 medium risk identified" color={T.amber}/>
       </div>
 
-      {/* Risk breakdown */}
       <Card>
-        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
-          Risk breakdown
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {risks.map((r, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <Tag color={r.color} bg={r.color + '15'}>{r.level}</Tag>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>{r.label}</div>
-                <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{r.detail}</div>
-              </div>
+        <SLabel>Risk breakdown</SLabel>
+        <div style={{display:'flex',flexDirection:'column'}}>
+          {risks.map((r,i)=>(
+            <div key={i} style={{display:'flex',alignItems:'center',gap:16,padding:'13px 0',borderBottom:i<risks.length-1?`1px solid ${T.border}`:'none'}}>
+              <Tag color={r.color} sx={{minWidth:64,justifyContent:'center'}}>{r.level}</Tag>
+              <span style={{fontSize:14,fontWeight:500,color:T.t1,flex:1}}>{r.label}</span>
+              <span style={{fontSize:13,color:T.t3}}>{r.detail}</span>
             </div>
           ))}
         </div>
       </Card>
 
-      {/* Comparable work */}
       <Card>
-        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
-          Closest shipped feature
-        </p>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: 10, background: T.primary10,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-          }}>
-            <svg width="18" height="18" fill={T.primary} viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <SLabel>Closest shipped feature</SLabel>
+        <div style={{display:'flex',alignItems:'center',gap:16}}>
+          <div style={{width:44,height:44,borderRadius:10,background:T.p10,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+            <svg width="20" height="20" fill="none" stroke={T.primary} strokeWidth="2" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>Trending Shelf · Q3 2024</div>
-            <div style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>Similar data shape · Shipped in 3.5 days · 0 incidents</div>
+          <div style={{flex:1}}>
+            <p style={{fontSize:15,fontWeight:500,color:T.t1}}>Trending Shelf · Q3 2024</p>
+            <p style={{fontSize:13,color:T.t3,marginTop:2}}>Similar data shape · Shipped in 3.5 days · 0 post-ship incidents</p>
           </div>
-          <Verified type="verified" />
+          <Dot type="verified" label="verified match"/>
         </div>
       </Card>
 
-      <div style={{ padding: '12px 16px', background: T.primary10, borderRadius: 10, border: `1px solid ${T.primary}25` }}>
-        <p style={{ fontSize: 13, color: T.primary, lineHeight: 1.5 }}>
-          Artisan found everything it needs to proceed. No blockers.
-        </p>
+      <div style={{padding:'14px 20px',background:T.p10,borderRadius:10,border:`1px solid ${T.primary}25`}}>
+        <p style={{fontSize:14,color:T.primary}}>No blockers. Artisan has everything it needs to proceed.</p>
       </div>
     </div>
   );
 };
 
-/* ── Screen 1: Requirements Discovery ── */
-const RequirementsScreen = () => {
-  const [expanded, setExpanded] = useState(null);
+/* 1 · Requirements */
+const S1 = () => {
+  const [open,setOpen] = useState(null);
   const reqs = [
-    {
-      id: 0, status: 'confirmed', label: 'Show top 5 expert-curated items per category',
-      detail: 'Source: product-spec-v4.docx · Line 23 · Cross-checked with design mock #88',
-      source: 'spec',
-    },
-    {
-      id: 1, status: 'confirmed', label: 'Refresh picks every 24 hours, not real-time',
-      detail: 'Inferred from analytics dashboard — real-time would spike costs 4×',
-      source: 'inferred',
-    },
-    {
-      id: 2, status: 'question', label: 'What happens if a category has fewer than 5 experts?',
-      detail: null,
-      source: 'gap',
-    },
-    {
-      id: 3, status: 'confirmed', label: 'Respect personalisation exclusions (blocked brands, dietary)',
-      detail: 'Found in shared personalisation lib · Already used by Trending Shelf',
-      source: 'code',
-    },
+    { id:0, status:'confirmed', label:'Show top 5 expert-curated items per category',         source:'product-spec-v4.docx · Line 23 · Cross-referenced with Figma mock #88' },
+    { id:1, status:'inferred',  label:'Refresh picks every 24 hours, not real-time',           source:'Inferred from analytics — real-time would spike infra cost 4×' },
+    { id:2, status:'gap',       label:'What happens if a category has fewer than 5 experts?',  source:null },
+    { id:3, status:'confirmed', label:'Respect personalisation exclusions (blocked brands, dietary)', source:'Found in shared personalisation lib · Already used by Trending Shelf' },
   ];
-
-  const statusStyle = {
-    confirmed: { dot: '●', color: T.emerald },
-    question: { dot: '?', color: T.amber },
-    gap: { dot: '!', color: T.red },
-  };
-
+  const dot = { confirmed:{ch:'●',c:T.emerald}, inferred:{ch:'◐',c:T.amber}, gap:{ch:'?',c:T.red} };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
       <div>
-        <Tag color={T.primary} style={{ marginBottom: 8 }}>Step 2 of 12</Tag>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          What exactly are we building?
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          Artisan read the spec, the Figma file, and 14 Slack threads. Here's what it understood.
-        </p>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>What exactly are we building?</h1>
+        <p style={{color:T.t2,fontSize:16}}>Artisan read the spec, the Figma file, and 14 Slack threads. Here's what it understood — and what's still unclear.</p>
       </div>
 
-      {/* Requirements list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {reqs.map((r) => {
-          const s = statusStyle[r.status] || statusStyle.confirmed;
-          const isOpen = expanded === r.id;
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+        {reqs.map((r)=>{
+          const d = dot[r.status];
+          const isOpen = open===r.id;
           return (
-            <div
-              key={r.id}
-              onClick={() => r.detail && setExpanded(isOpen ? null : r.id)}
-              style={{
-                background: T.s1, border: `1px solid ${isOpen ? T.borderH : T.border}`,
-                borderRadius: 12, padding: '14px 16px',
-                cursor: r.detail ? 'pointer' : 'default',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <span style={{ color: s.color, fontSize: 13, marginTop: 2, flexShrink: 0, fontFamily: 'monospace' }}>{s.dot}</span>
-                <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 14, color: T.t1, lineHeight: 1.5 }}>{r.label}</span>
-                  {isOpen && r.detail && (
-                    <div style={{ marginTop: 8, padding: '10px 12px', background: T.s2, borderRadius: 8 }}>
-                      <p style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>{r.detail}</p>
+            <Card key={r.id} onClick={()=>r.source&&setOpen(isOpen?null:r.id)} hover={!!r.source}
+              style={{padding:'18px 22px',borderColor:r.status==='gap'?T.red+'35':undefined}}>
+              <div style={{display:'flex',gap:12,alignItems:'flex-start'}}>
+                <span style={{fontFamily:'monospace',fontSize:10,color:d.c,marginTop:4,flexShrink:0}}>{d.ch}</span>
+                <div style={{flex:1}}>
+                  <p style={{fontSize:14,fontWeight:500,color:T.t1,lineHeight:1.5}}>{r.label}</p>
+                  {r.status==='gap'&&<p style={{fontSize:12,color:T.red,marginTop:4}}>Safe default applied — click to review</p>}
+                  {isOpen&&r.source&&(
+                    <div style={{marginTop:10,padding:'10px 14px',background:T.s2,borderRadius:8,animation:'fadeUp .15s ease'}}>
+                      <p style={{fontSize:12,color:T.t2,lineHeight:1.5}}>{r.source}</p>
                     </div>
                   )}
                 </div>
-                {r.detail && (
-                  <span style={{ color: T.t2, fontSize: 14, marginTop: 1, flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
-                )}
+                {r.source&&<span style={{color:T.t2,fontSize:14,marginTop:2}}>{isOpen?'▲':'▼'}</span>}
               </div>
-            </div>
+            </Card>
           );
         })}
       </div>
 
-      {/* Gap resolution */}
-      <Card style={{ borderColor: T.amber + '40', background: T.amber + '08' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18, marginTop: 2 }}>⚠</span>
+      <Card style={{borderColor:T.amber+'35',background:T.amber+'06',padding:'18px 22px'}}>
+        <div style={{display:'flex',gap:14,alignItems:'flex-start'}}>
+          <span style={{color:T.amber,fontSize:20}}>⚠</span>
           <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: T.amber, marginBottom: 4 }}>1 gap found</p>
-            <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
-              What happens when a category has fewer than 5 experts? Artisan will use a safe default (show all available) and flag this for your review before shipping.
-            </p>
+            <p style={{fontSize:14,fontWeight:600,color:T.amber,marginBottom:4}}>1 gap found — safe default applied</p>
+            <p style={{fontSize:13,color:T.t2,lineHeight:1.55}}>Fewer than 5 experts in a category → show all available items. Flagged for your review before merge.</p>
           </div>
         </div>
       </Card>
 
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-        <Verified type="verified" label="3 confirmed" />
-        <Verified type="inferred" label="1 resolved with safe default" />
+      <div style={{display:'flex',gap:20}}>
+        <Dot type="verified" label="3 confirmed"/>
+        <Dot type="inferred" label="1 resolved with safe default"/>
       </div>
     </div>
   );
 };
 
-/* ── Screen 2: Data Discovery ── */
-const DataDiscoveryScreen = () => {
-  const [legendOpen, setLegendOpen] = useState(false);
+/* 2 · Data Sources */
+const S2 = () => {
+  const [legendOpen,setLegendOpen] = useState(false);
   const sources = [
-    {
-      name: 'expert_picks',
-      db: 'prod_catalog',
-      type: 'found · reusing',
-      typeColor: T.emerald,
-      rows: '12,400 rows',
-      freshness: 'Updated 2h ago',
-      usage: 'Primary data source',
-    },
-    {
-      name: 'user_preferences',
-      db: 'prod_users',
-      type: 'found · reusing',
-      typeColor: T.emerald,
-      rows: '2.1M rows',
-      freshness: 'Live',
-      usage: 'Personalisation exclusions',
-    },
-    {
-      name: 'category_weights',
-      db: '—',
-      type: 'two candidates',
-      typeColor: T.amber,
-      rows: null,
-      freshness: null,
-      usage: 'Ranking algorithm input',
-    },
+    { name:'expert_picks',     db:'prod_catalog', type:'found · reusing', tc:T.emerald, rows:'12,400 rows', fresh:'Updated 2h ago', use:'Primary data source' },
+    { name:'user_preferences', db:'prod_users',   type:'found · reusing', tc:T.emerald, rows:'2.1M rows',  fresh:'Live',           use:'Personalisation exclusions' },
+    { name:'category_weights', db:'—',            type:'two candidates',  tc:T.amber,   rows:null,         fresh:null,             use:'Ranking input — needs your decision' },
   ];
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
       <div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          Where does the data come from?
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          Every number Artisan uses has a traceable origin. Here's the full picture.
-        </p>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>Where does the data come from?</h1>
+        <p style={{color:T.t2,fontSize:16}}>Every number Artisan uses has a traceable origin. Nothing assumed, nothing hidden.</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {sources.map((s, i) => (
-          <Card key={i} hover style={{ padding: '16px 20px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <code style={{ fontSize: 13, color: T.primary, background: T.primary10, padding: '2px 8px', borderRadius: 5 }}>
-                  {s.name}
-                </code>
-                <Tag color={s.typeColor} bg={s.typeColor + '18'}>{s.type}</Tag>
-              </div>
-              {s.db !== '—' && (
-                <div style={{ display: 'flex', gap: 16 }}>
-                  <span style={{ fontSize: 12, color: T.t3 }}>
-                    <span style={{ color: T.t2 }}>{s.db}</span> · {s.rows}
-                  </span>
-                  <span style={{ fontSize: 12, color: T.t3 }}>{s.freshness}</span>
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {sources.map((s,i)=>(
+          <Card key={i} style={{padding:'20px 24px'}}>
+            <div style={{display:'flex',gap:20,alignItems:'flex-start'}}>
+              <code style={{fontSize:13,color:T.primary,background:T.p10,padding:'4px 10px',borderRadius:6,flexShrink:0,marginTop:2,fontFamily:'monospace'}}>{s.name}</code>
+              <div style={{flex:1}}>
+                <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:4}}>
+                  <Tag color={s.tc}>{s.type}</Tag>
+                  {s.fresh&&<span style={{fontSize:12,color:T.t3}}>{s.db} · {s.rows} · {s.fresh}</span>}
                 </div>
-              )}
-              <p style={{ fontSize: 13, color: T.t2 }}>{s.usage}</p>
-              {s.type === 'two candidates' && (
-                <div style={{ padding: '10px 12px', background: T.amber10, borderRadius: 8, border: `1px solid ${T.amber}30` }}>
-                  <p style={{ fontSize: 12, color: T.amber, marginBottom: 8 }}>Two tables match this name. Which did you mean?</p>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <Btn variant="ghost" size="sm">catalog.category_weights</Btn>
-                    <Btn variant="ghost" size="sm">ranking.category_weights</Btn>
+                <p style={{fontSize:13,color:T.t2}}>{s.use}</p>
+                {s.type==='two candidates'&&(
+                  <div style={{marginTop:12,padding:'12px 16px',background:T.a10,borderRadius:8,border:`1px solid ${T.amber}25`}}>
+                    <p style={{fontSize:12,color:T.amber,marginBottom:10}}>Two tables match — which did you mean?</p>
+                    <div style={{display:'flex',gap:8}}>
+                      <Btn variant="subtle" size="sm">catalog.category_weights</Btn>
+                      <Btn variant="subtle" size="sm">ranking.category_weights</Btn>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
+              <Dot type={s.type==='found · reusing'?'verified':'inferred'}/>
             </div>
           </Card>
         ))}
       </div>
 
-      {/* Progressive Disclosure: legend collapsed by default */}
-      <div
-        onClick={() => setLegendOpen(o => !o)}
-        style={{
-          padding: '12px 16px', background: T.s1,
-          border: `1px solid ${T.border}`, borderRadius: 12,
-          cursor: 'pointer', transition: 'border-color 0.15s',
-        }}
-      >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <p style={{ fontSize: 13, color: T.t3, fontWeight: 500 }}>What do these labels mean?</p>
-          <span style={{ color: T.t3, fontSize: 11 }}>{legendOpen ? '▲' : '▼'}</span>
-        </div>
-        {legendOpen && (
-          <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8, animation: 'fadeUp 0.15s ease both' }}>
-            {[
-              ['found · reusing', T.emerald, 'Exists in prod, already used by other features'],
-              ['found · asking', T.primary, 'Exists, Artisan needs your permission to read'],
-              ['two candidates', T.amber, 'Two tables match — you decide which one'],
-              ['does not exist', T.red, 'Artisan will create and seed the table for you'],
-            ].map(([label, color, desc]) => (
-              <div key={label} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                <Tag color={color} bg={color + '18'}>{label}</Tag>
-                <span style={{ fontSize: 12, color: T.t3, lineHeight: 1.4, marginTop: 3 }}>{desc}</span>
+      <div onClick={()=>setLegendOpen(o=>!o)}
+        style={{padding:'12px 18px',background:T.s1,border:`1px solid ${T.border}`,borderRadius:10,cursor:'pointer',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+        <span style={{fontSize:13,color:T.t3}}>What do these labels mean?</span>
+        <span style={{fontSize:13,color:T.t3}}>{legendOpen?'▲':'▼'}</span>
+      </div>
+      {legendOpen&&(
+        <Card style={{animation:'fadeUp .15s ease',padding:'18px 24px'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            {[['found · reusing',T.emerald,'Exists in prod, already used by other features'],
+              ['found · asking', T.primary,'Exists but Artisan needs your permission to read'],
+              ['two candidates', T.amber,  'Two tables match — you decide which one'],
+              ['does not exist', T.red,    'Artisan will create and seed the table for you'],
+            ].map(([l,c,d])=>(
+              <div key={l} style={{display:'flex',gap:10,alignItems:'flex-start'}}>
+                <Tag color={c}>{l}</Tag>
+                <span style={{fontSize:12,color:T.t3,lineHeight:1.4,marginTop:3}}>{d}</span>
               </div>
             ))}
           </div>
-        )}
-      </div>
+        </Card>
+      )}
     </div>
   );
 };
 
-/* ── Screen 3: Spec Card ── */
-const SpecScreen = () => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+/* 3 · The Plan */
+const S3 = () => (
+  <div style={{display:'flex',flexDirection:'column',gap:32}}>
     <div>
-      <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-        The plan, in plain language
-      </h1>
-      <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-        This is what Artisan will build. Read it. Push back on anything.
-      </p>
+      <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>The plan, in plain language</h1>
+      <p style={{color:T.t2,fontSize:16}}>This is exactly what Artisan will build. Read it carefully — push back on anything that doesn't match your intent.</p>
     </div>
 
-    <Card>
-      <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
-        Feature summary
-      </p>
-      <p style={{ fontSize: 15, color: T.t1, lineHeight: 1.65 }}>
-        Expert Picks shows the top 5 curator-selected items per category on the home screen.
-        Items refresh every 24 hours via a scheduled job. Personalisation exclusions (blocked brands, dietary preferences) are respected.
-        When a category has fewer than 5 experts, all available items are shown.
-      </p>
-    </Card>
-
-    {/* Steps flow */}
-    <Card>
-      <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 14 }}>
-        What Artisan will do
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {[
-          ['Query expert_picks table, filter by category', 'Read'],
-          ['Apply personalisation exclusions from user_preferences', 'Read'],
-          ['Sort by curator_score, return top 5 per category', 'Logic'],
-          ['Cache result per user segment (TTL 24h)', 'Write'],
-          ['Add ExpertPicksShelf component to HomeScreen', 'UI'],
-          ['Feature flag: EXPERT_PICKS_ENABLED', 'Config'],
-        ].map(([step, type], i, arr) => (
-          <div key={i} style={{ display: 'flex', gap: 12, position: 'relative' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 20, flexShrink: 0 }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: '50%', background: T.primary10,
-                border: `1.5px solid ${T.primary}40`, display: 'flex', alignItems: 'center',
-                justifyContent: 'center', zIndex: 1, flexShrink: 0, marginTop: 10,
-              }}>
-                <span style={{ fontSize: 10, color: T.primary, fontWeight: 600 }}>{i + 1}</span>
+    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+      <Card>
+        <SLabel>Feature summary</SLabel>
+        <p style={{fontSize:15,color:T.t1,lineHeight:1.7}}>
+          Expert Picks shows the top 5 curator-selected items per category on the home screen. Items refresh every 24 hours via a scheduled job. Personalisation exclusions (blocked brands, dietary preferences) are respected. When a category has fewer than 5 experts, all available items are shown.
+        </p>
+      </Card>
+      <Card>
+        <SLabel>What Artisan will do</SLabel>
+        <div>
+          {[['Query expert_picks, filter by category','Read'],
+            ['Apply personalisation exclusions','Read'],
+            ['Sort by curator_score, return top 5','Logic'],
+            ['Cache per user segment (TTL 24h)','Write'],
+            ['Add ExpertPicksShelf to HomeScreen','UI'],
+            ['Feature flag: EXPERT_PICKS_ENABLED','Config'],
+          ].map(([step,type],i,arr)=>(
+            <div key={i} style={{display:'flex',gap:12,alignItems:'flex-start',paddingBottom:i<arr.length-1?14:0}}>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:20,flexShrink:0}}>
+                <div style={{width:20,height:20,borderRadius:'50%',background:T.p10,border:`1.5px solid ${T.primary}40`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+                  <span style={{fontSize:9,color:T.primary,fontWeight:700}}>{i+1}</span>
+                </div>
+                {i<arr.length-1&&<div style={{width:1.5,flex:1,background:T.borderH,marginTop:3}}/>}
               </div>
-              {i < arr.length - 1 && (
-                <div style={{ width: 1.5, flex: 1, background: T.borderH, marginTop: 2 }} />
-              )}
+              <div style={{paddingTop:2}}>
+                <span style={{fontSize:13,color:T.t1}}>{step}</span>
+                <Tag color={T.t3} sx={{marginLeft:8}}>{type}</Tag>
+              </div>
             </div>
-            <div style={{ paddingBottom: i < arr.length - 1 ? 16 : 0, paddingTop: 8 }}>
-              <span style={{ fontSize: 14, color: T.t1 }}>{step}</span>
-              <span style={{ fontSize: 11, color: T.t3, marginLeft: 8 }}>
-                <Tag color={T.t3}>{type}</Tag>
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
+          ))}
+        </div>
+      </Card>
+    </div>
 
-    <div style={{ display: 'flex', gap: 10 }}>
-      <Btn style={{ flex: 1 }}>Yes, this is correct — build it</Btn>
-      <Btn variant="ghost">Something's wrong</Btn>
+    <div style={{display:'flex',gap:12}}>
+      <Btn size="lg">Yes, this is correct — build it</Btn>
+      <Btn variant="ghost" size="lg">Something's wrong</Btn>
     </div>
   </div>
 );
 
-/* ── Screen 4: Handoff Decision ── */
-const HandoffScreen = () => {
-  const [choice, setChoice] = useState('review'); // default to recommended
+/* 4 · Handoff */
+const S4 = () => {
+  const [choice,setChoice] = useState('review');
+  const opts = [
+    { id:'review',      icon:'✓', title:'Review when done',    sub:'Artisan builds, you approve before merge',      badge:'Recommended', detail:'Artisan runs to completion, then shows a full summary. You sign off or request changes. Nothing merges without your approval.' },
+    { id:'watch',       icon:'👁', title:'Watch live',          sub:'Follow Artisan step-by-step as it builds',      badge:null,          detail:'Every decision visible in real time. Artisan pauses and asks before anything risky.' },
+    { id:'engineering', icon:'↗', title:'Hand to engineering', sub:'Forward the spec + full context to your EM',    badge:null,          detail:'Artisan generates a complete engineering brief with every data point it gathered. Your EM picks it up from here.' },
+  ];
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
       <div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          How involved do you want to be?
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          You can watch every step, check in at the end, or hand it off to engineering. Your call.
-        </p>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>How involved do you want to be?</h1>
+        <p style={{color:T.t2,fontSize:16}}>All three routes get to the same place. Pick how much you want to see along the way.</p>
       </div>
 
-      {/* Serial Position Effect: put the recommended option first — it gets the most attention */}
-      {[
-        {
-          id: 'review',
-          icon: '✓',
-          title: 'Review when done',
-          subtitle: 'Artisan builds, you approve before merge',
-          detail: 'Artisan runs to completion, then shows you a summary. You sign off or request changes.',
-          badge: 'Recommended',
-        },
-        {
-          id: 'watch',
-          icon: '👁',
-          title: 'Watch live',
-          subtitle: 'Follow Artisan step-by-step as it builds',
-          detail: 'You see every decision in real time. Artisan pauses and asks before anything risky.',
-          badge: null,
-        },
-        {
-          id: 'engineering',
-          icon: '↗',
-          title: 'Hand to engineering',
-          subtitle: 'Forward the spec + context to your EM',
-          detail: 'Artisan generates a full engineering brief with all context it gathered. Your EM takes it from here.',
-          badge: null,
-        },
-      ].map((opt) => (
-        <div
-          key={opt.id}
-          onClick={() => setChoice(opt.id)}
-          style={{
-            background: T.s1,
-            border: `1.5px solid ${choice === opt.id ? T.primary : T.border}`,
-            borderRadius: 14,
-            padding: '16px 18px',
-            cursor: 'pointer',
-            transition: 'border-color 0.15s',
-          }}
-        >
-          <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
-            <div style={{
-              width: 40, height: 40, borderRadius: 10,
-              background: choice === opt.id ? T.primary10 : T.s2,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 18, flexShrink: 0, transition: 'background 0.15s',
+      <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16}}>
+        {opts.map((o)=>{
+          const sel = choice===o.id;
+          return (
+            <div key={o.id} onClick={()=>setChoice(o.id)} style={{
+              background:sel?T.p10:T.s1, border:`1.5px solid ${sel?T.primary:T.border}`,
+              borderRadius:14, padding:'22px 22px 20px', cursor:'pointer',
+              transition:'border-color .15s,background .15s', display:'flex',flexDirection:'column',gap:12,
             }}>
-              {opt.icon}
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                <span style={{ fontSize: 15, fontWeight: 600, color: T.t1 }}>{opt.title}</span>
-                {opt.badge && <Tag color={T.primary} bg={T.primary10}>{opt.badge}</Tag>}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+                <div style={{width:40,height:40,borderRadius:10,background:sel?T.primary+'25':T.s2,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{o.icon}</div>
+                {o.badge&&<Tag color={T.primary}>{o.badge}</Tag>}
               </div>
-              <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{opt.subtitle}</p>
-              {choice === opt.id && (
-                <div style={{ marginTop: 10, padding: '10px 12px', background: T.s2, borderRadius: 8 }}>
-                  <p style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>{opt.detail}</p>
+              <div>
+                <p style={{fontSize:15,fontWeight:600,color:T.t1,marginBottom:4}}>{o.title}</p>
+                <p style={{fontSize:13,color:T.t2,lineHeight:1.5}}>{o.sub}</p>
+              </div>
+              {sel&&(
+                <div style={{padding:'10px 14px',background:T.s2,borderRadius:8,animation:'fadeUp .15s ease'}}>
+                  <p style={{fontSize:12,color:T.t2,lineHeight:1.55}}>{o.detail}</p>
                 </div>
               )}
             </div>
-            <div style={{
-              width: 18, height: 18, borderRadius: '50%', marginTop: 10, flexShrink: 0,
-              border: `1.5px solid ${choice === opt.id ? T.primary : T.border}`,
-              background: choice === opt.id ? T.primary : 'transparent',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              {choice === opt.id && <span style={{ fontSize: 9, color: T.t1 }}>✓</span>}
-            </div>
-          </div>
-        </div>
-      ))}
+          );
+        })}
+      </div>
 
-      {choice && (
-        <div style={{ animation: 'fadeUp 0.2s ease both' }}>
-          <Btn style={{ width: '100%' }}>
-            {choice === 'watch' ? 'Start watching →' : choice === 'review' ? 'Build and notify me →' : 'Generate engineering brief →'}
-          </Btn>
-        </div>
-      )}
+      <Btn size="lg">
+        {choice==='watch'?'Start watching →':choice==='review'?'Build and notify me →':'Generate engineering brief →'}
+      </Btn>
     </div>
   );
 };
 
-/* ── Screen 5: Live Build Feed ── */
-const LiveBuildScreen = () => {
+/* 5 · Live Build */
+const S5 = () => {
   const steps = [
-    { status: 'done', label: 'Read expert_picks schema', time: '0:04', detail: '3 tables, 12 columns' },
-    { status: 'done', label: 'Confirm personalisation lib is compatible', time: '0:09', detail: 'Version 2.4.1 ✓' },
-    { status: 'active', label: 'Writing ExpertPicksShelf component', time: 'now', detail: null },
-    { status: 'pending', label: 'Write API endpoint /picks/{category}', time: null, detail: null },
-    { status: 'pending', label: 'Set up 24h cache invalidation job', time: null, detail: null },
-    { status: 'pending', label: 'Add feature flag EXPERT_PICKS_ENABLED', time: null, detail: null },
+    { status:'done',    label:'Read expert_picks schema',                  time:'0:04', detail:'3 tables · 12 columns' },
+    { status:'done',    label:'Confirm personalisation lib is compatible', time:'0:09', detail:'Version 2.4.1 ✓' },
+    { status:'active',  label:'Writing ExpertPicksShelf component',        time:'now',  detail:null },
+    { status:'pending', label:'Write API endpoint /picks/{category}',      time:null,   detail:null },
+    { status:'pending', label:'Set up 24h cache invalidation job',         time:null,   detail:null },
+    { status:'pending', label:'Add feature flag EXPERT_PICKS_ENABLED',     time:null,   detail:null },
   ];
-
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <span className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: T.emerald, display: 'inline-block' }} />
-          <span style={{ fontSize: 13, color: T.emerald, fontWeight: 500 }}>Building now</span>
-        </div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          Artisan is writing your code
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          2 of 6 steps complete. Estimated finish: 7 minutes.
-        </p>
-      </div>
-
-      <ProgressBar value={33} height={4} />
-
-      {/* Step list */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {steps.map((s, i, arr) => (
-          <div key={i} style={{ display: 'flex', gap: 12, position: 'relative' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 22, flexShrink: 0 }}>
-              <div style={{
-                width: 22, height: 22, borderRadius: '50%', marginTop: 8, flexShrink: 0,
-                background: s.status === 'done' ? T.emerald10 : s.status === 'active' ? T.primary10 : T.s2,
-                border: `1.5px solid ${s.status === 'done' ? T.emerald : s.status === 'active' ? T.primary : T.border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {s.status === 'done' && <span style={{ fontSize: 10, color: T.emerald }}>✓</span>}
-                {s.status === 'active' && <Spinner size={10} />}
-                {s.status === 'pending' && <span style={{ fontSize: 8, color: T.t3 }}>○</span>}
-              </div>
-              {i < arr.length - 1 && (
-                <div style={{ width: 1.5, flex: 1, background: T.border, marginTop: 2, marginBottom: 0 }} />
-              )}
-            </div>
-            <div style={{ paddingBottom: i < arr.length - 1 ? 16 : 0, paddingTop: 6 }}>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                <span style={{ fontSize: 14, color: s.status === 'pending' ? T.t3 : T.t1 }}>{s.label}</span>
-                {s.time && <span style={{ fontSize: 11, color: T.t3 }}>{s.time}</span>}
-              </div>
-              {s.detail && (
-                <p style={{ fontSize: 12, color: T.t3, marginTop: 2 }}>{s.detail}</p>
-              )}
-            </div>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+        <div>
+          <div style={{display:'flex',gap:8,alignItems:'center',marginBottom:10}}>
+            <span className="pulse-dot" style={{width:8,height:8,borderRadius:'50%',background:T.emerald,display:'inline-block'}}/>
+            <span style={{fontSize:13,color:T.emerald,fontWeight:500}}>Building now</span>
           </div>
-        ))}
+          <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:6}}>Artisan is writing your code</h1>
+          <p style={{color:T.t2,fontSize:16}}>2 of 6 steps complete · Estimated finish: 7 minutes</p>
+        </div>
+        <div style={{textAlign:'right',flexShrink:0}}>
+          <p style={{fontSize:11,color:T.t3,marginBottom:4,letterSpacing:'0.06em',textTransform:'uppercase'}}>Progress</p>
+          <p style={{fontFamily:G,fontSize:40,fontWeight:700,color:T.primary,lineHeight:1}}>33%</p>
+        </div>
       </div>
 
-      {/* Diff preview */}
-      <Card>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            Being written now
-          </p>
-          <Tag color={T.t3}>ExpertPicksShelf.tsx</Tag>
-        </div>
-        <div style={{
-          fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7,
-          background: T.s2, borderRadius: 8, padding: '12px 14px',
-          color: T.t3,
-        }}>
-          <div style={{ color: T.emerald }}>+ export const ExpertPicksShelf = ({'{'} categoryId {'}'}) =&gt; {'{'}</div>
-          <div style={{ color: T.emerald }}>+   const picks = useExpertPicks(categoryId);</div>
-          <div style={{ color: T.emerald }}>+   if (!picks.length) return null;</div>
-          <div style={{ color: T.t3 }}>    return (</div>
-          <div style={{ paddingLeft: 14, color: T.t3 }}>...</div>
-        </div>
-      </Card>
+      <Bar value={33}/>
 
-      <div style={{
-        display: 'flex', gap: 8, alignItems: 'center',
-        padding: '10px 14px',
-        background: T.s1, border: `1px solid ${T.border}`,
-        borderRadius: 10,
-      }}>
-        <input
-          placeholder="Ask Artisan something... (e.g. why did you use a cache?)"
-          style={{
-            flex: 1, background: 'transparent', border: 'none',
-            color: T.t1, fontSize: 13, fontFamily: font.inter, outline: 'none',
-          }}
-        />
-        <Btn size="sm">Ask</Btn>
-      </div>
-    </div>
-  );
-};
-
-/* ── Screen 6: Self-Correction Summary ── */
-const SelfCorrectionScreen = () => {
-  /* Progressive Disclosure: start with most critical (high) expanded, rest collapsed */
-  const [expanded, setExpanded] = useState(new Set([0]));
-  const toggle = (i) => setExpanded(prev => {
-    const next = new Set(prev);
-    next.has(i) ? next.delete(i) : next.add(i);
-    return next;
-  });
-
-  const fixes = [
-    {
-      what: 'Added null check for empty picks array',
-      why: 'Component would crash on uncached first load',
-      impact: 'Prevented a runtime error',
-      severity: 'high',
-    },
-    {
-      what: 'Switched from .map() to .slice(0, 5).map()',
-      why: 'Query could return more than 5 items on category edge cases',
-      impact: 'Ensured consistent 5-item limit',
-      severity: 'medium',
-    },
-    {
-      what: 'Added loading skeleton, not empty div',
-      why: 'Layout shift would score CLS 0.4+ on slow connections',
-      impact: 'Kept CLS under 0.1',
-      severity: 'low',
-    },
-  ];
-
-  const sevColor = { high: T.red, medium: T.amber, low: T.emerald };
-  const sevLabel = { high: 'Critical', medium: 'Medium', low: 'Minor' };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-          <Tag color={T.emerald} bg={T.emerald10}>Before you saw it</Tag>
-        </div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          3 things Artisan fixed itself
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          These aren't bugs you'd have caught in QA — they're the kind of edge cases that reach prod.
-        </p>
-      </div>
-
-      {fixes.map((f, i) => {
-        const isOpen = expanded.has(i);
-        const color = sevColor[f.severity];
-        return (
-          <div
-            key={i}
-            onClick={() => toggle(i)}
-            style={{
-              background: T.s1,
-              border: `1px solid ${isOpen ? color + '40' : T.border}`,
-              borderRadius: 14,
-              overflow: 'hidden',
-              cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }}
-          >
-            <div style={{ padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'center' }}>
-              <div style={{
-                width: 8, height: 8, borderRadius: '50%',
-                background: color, flexShrink: 0,
-              }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 500, color: T.t1, lineHeight: 1.4 }}>{f.what}</span>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20,alignItems:'start'}}>
+        <Card>
+          <SLabel>Build steps</SLabel>
+          {steps.map((s,i,arr)=>(
+            <div key={i} style={{display:'flex',gap:14,position:'relative'}}>
+              <div style={{display:'flex',flexDirection:'column',alignItems:'center',width:24,flexShrink:0}}>
+                <div style={{
+                  width:24,height:24,borderRadius:'50%',marginTop:10,flexShrink:0,
+                  background:s.status==='done'?T.e10:s.status==='active'?T.p10:T.s2,
+                  border:`1.5px solid ${s.status==='done'?T.emerald:s.status==='active'?T.primary:T.border}`,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                }}>
+                  {s.status==='done'   &&<span style={{fontSize:10,color:T.emerald}}>✓</span>}
+                  {s.status==='active' &&<Spinner size={10}/>}
+                  {s.status==='pending'&&<span style={{fontSize:8,color:T.t3}}>○</span>}
                 </div>
-                {!isOpen && (
-                  <span style={{ fontSize: 12, color: T.t3 }}>{sevLabel[f.severity]} · tap to expand</span>
-                )}
+                {i<arr.length-1&&<div style={{width:1.5,flex:1,background:T.borderH,marginTop:3}}/>}
               </div>
-              <Tag color={color} bg={color + '18'}>{sevLabel[f.severity]}</Tag>
-              <span style={{ color: T.t2, fontSize: 14, flexShrink: 0 }}>{isOpen ? '▲' : '▼'}</span>
-            </div>
-            {isOpen && (
-              <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 16px 14px 36px', background: color + '05' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div>
-                    <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Why </span>
-                    <span style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{f.why}</span>
-                  </div>
-                  <div>
-                    <span style={{ fontSize: 11, color: T.t3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Result </span>
-                    <span style={{ fontSize: 13, color: T.emerald }}>{f.impact}</span>
-                  </div>
-                </div>
+              <div style={{paddingBottom:i<arr.length-1?18:0,paddingTop:8}}>
+                <p style={{fontSize:14,color:s.status==='pending'?T.t3:T.t1}}>{s.label}</p>
+                {(s.detail||s.time)&&<p style={{fontSize:12,color:T.t3,marginTop:2}}>{[s.time,s.detail].filter(Boolean).join(' · ')}</p>}
               </div>
-            )}
-          </div>
-        );
-      })}
-
-      <div style={{ padding: '12px 16px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
-        <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
-          Artisan flags everything it changes. Nothing is hidden.
-        </p>
-      </div>
-    </div>
-  );
-};
-
-/* ── Screen 7: PM Correction Loop (Flowchart View) ── */
-const CorrectionLoopScreen = () => {
-  const [view, setView] = useState('flow');
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          Something doesn't look right?
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          Tell Artisan what's wrong in plain language. It handles the fix.
-        </p>
-      </div>
-
-      {/* View toggle */}
-      <div style={{ display: 'flex', gap: 4, padding: 4, background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
-        {['flow', 'diff', 'code'].map((v) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            style={{
-              flex: 1, padding: '8px 12px', borderRadius: 7, border: 'none',
-              background: view === v ? T.s2 : 'transparent',
-              color: view === v ? T.t1 : T.t3,
-              fontSize: 13, fontWeight: 500, cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-          >
-            {v === 'flow' ? 'Flowchart' : v === 'diff' ? 'Annotated diff' : 'Raw code'}
-          </button>
-        ))}
-      </div>
-
-      {view === 'flow' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, animation: 'fadeUp 0.2s ease both' }}>
-          {[
-            ['User opens home screen', T.primary, '→'],
-            ['Artisan checks EXPERT_PICKS_ENABLED flag', T.s2, '↓'],
-            ['Fetch expert_picks WHERE category = X', T.s2, '↓'],
-            ['Apply personalisation exclusions', T.s2, '↓'],
-            ['Sort by curator_score DESC', T.s2, '↓'],
-            ['Return top 5 (or all if < 5)', T.amber + '20', '↓'],
-            ['Render ExpertPicksShelf', T.emerald + '20', null],
-          ].map(([label, bg, arrow], i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ padding: '10px 16px', background: bg, border: `1px solid ${T.border}`, borderRadius: 8, width: '100%' }}>
-                <span style={{ fontSize: 13, color: T.t1 }}>{label}</span>
-              </div>
-              {arrow && <span style={{ color: T.t3, fontSize: 16, marginTop: 2 }}>{arrow}</span>}
             </div>
           ))}
+        </Card>
+
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <Card>
+            <SLabel>Being written now · ExpertPicksShelf.tsx</SLabel>
+            <div style={{fontFamily:'monospace',fontSize:12,lineHeight:1.75,background:T.s2,borderRadius:8,padding:'14px 16px'}}>
+              <div style={{color:T.emerald}}>+ export const ExpertPicksShelf = {'({ categoryId })'} =&gt; {'{'}</div>
+              <div style={{color:T.emerald}}>+   const picks = useExpertPicks(categoryId);</div>
+              <div style={{color:T.emerald}}>+   if (!picks.length) return &lt;EmptyShelf /&gt;;</div>
+              <div style={{color:T.t3}}>    return (</div>
+              <div style={{color:T.t3,paddingLeft:16}}>{'<Shelf items={picks.slice(0, 5)} />'}</div>
+              <div style={{color:T.emerald}}>+ {'}'}</div>
+            </div>
+          </Card>
+          <div style={{display:'flex',gap:10,padding:'12px 16px',background:T.s1,border:`1px solid ${T.border}`,borderRadius:10,alignItems:'center'}}>
+            <input placeholder="Ask Artisan something... (e.g. why did you use a 24h cache?)"
+              style={{flex:1,background:'transparent',border:'none',color:T.t1,fontSize:13,fontFamily:I,outline:'none'}}/>
+            <Btn size="sm">Ask</Btn>
+          </div>
         </div>
-      )}
-
-      {view === 'diff' && (
-        <Card style={{ animation: 'fadeUp 0.2s ease both' }}>
-          <div style={{ fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7 }}>
-            <div style={{ color: T.t3, marginBottom: 8 }}>expertPicksService.ts · Line 42</div>
-            <div style={{ color: T.red, background: T.red + '10', padding: '2px 6px', borderRadius: 4, marginBottom: 2 }}>
-              - const picks = await db.query('SELECT * FROM expert_picks');
-            </div>
-            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
-              + const picks = await db.query(
-            </div>
-            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px 2px 20px', borderRadius: 4 }}>
-              +   'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',
-            </div>
-            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
-              +   [categoryId]
-            </div>
-            <div style={{ color: T.emerald, background: T.emerald + '10', padding: '2px 6px', borderRadius: 4 }}>
-              + );
-            </div>
-            <div style={{ marginTop: 8, padding: '8px 10px', background: T.primary10, borderRadius: 6 }}>
-              <span style={{ fontSize: 11, color: T.primary }}>Why: Added category filter and 5-item limit. Prevents over-fetching.</span>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {view === 'code' && (
-        <Card style={{ animation: 'fadeUp 0.2s ease both' }}>
-          <div style={{ fontFamily: 'monospace', fontSize: 12, lineHeight: 1.7, color: T.t2 }}>
-            <div><span style={{ color: T.violet }}>export async function</span> <span style={{ color: T.primary }}>getExpertPicks</span>(categoryId: string) {'{'}</div>
-            <div style={{ paddingLeft: 14 }}><span style={{ color: T.violet }}>const</span> picks = <span style={{ color: T.violet }}>await</span> db.query(</div>
-            <div style={{ paddingLeft: 28 }}>'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',</div>
-            <div style={{ paddingLeft: 28 }}>[categoryId]</div>
-            <div style={{ paddingLeft: 14 }}>);</div>
-            <div style={{ paddingLeft: 14 }}><span style={{ color: T.violet }}>return</span> applyPersonalisationFilter(picks, <span style={{ color: T.violet }}>await</span> getUserPrefs());</div>
-            <div>{'}'}</div>
-          </div>
-        </Card>
-      )}
-
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input
-          placeholder="e.g. The shelf should only show items with ratings above 4.2"
-          style={{
-            flex: 1, padding: '11px 14px', borderRadius: 10,
-            background: T.s1, border: `1px solid ${T.border}`,
-            color: T.t1, fontSize: 14, fontFamily: font.inter,
-            outline: 'none',
-          }}
-        />
-        <Btn size="md">Fix it</Btn>
       </div>
-      <p style={{ fontSize: 12, color: T.t3 }}>Write what should change in plain English — no code needed.</p>
     </div>
   );
 };
 
-/* ── Screen 8: Evidence Stack ── */
-const EvidenceScreen = () => {
-  const [open, setOpen] = useState(null);
-  const items = [
-    {
-      id: 0, icon: '✓', label: 'Does it look right?', color: T.emerald,
-      items: ['Figma mock #88 · pixel match 94%', 'Dark mode tested · contrast 5.2:1', 'Loading skeleton matches brand spec'],
-    },
-    {
-      id: 1, icon: '⚙', label: 'Does it work?', color: T.primary,
-      items: ['34 unit tests · 34 passing', 'Edge case: 0 picks → empty state shown', 'Edge case: 1 pick → layout holds', 'Personalisation filter: 12/12 test cases pass'],
-    },
-    {
-      id: 2, icon: '◈', label: 'Did it break anything?', color: T.amber,
-      items: ['0 regressions in CI (847 tests)', 'Trending Shelf unaffected (shared lib)', 'Home screen perf: unchanged (TTI 1.2s)'],
-    },
-    {
-      id: 3, icon: '⬡', label: 'Is the code good?', color: T.violet,
-      items: ['No new lint errors', 'Coverage: 94% (+2% from new tests)', 'Complexity score: 4 (was 4)'],
-    },
+/* 6 · Self-Corrections */
+const S6 = () => {
+  const [exp,setExp] = useState(new Set([0]));
+  const toggle = (i) => setExp(p=>{const n=new Set(p);n.has(i)?n.delete(i):n.add(i);return n;});
+  const fixes = [
+    { what:'Added null check for empty picks array',       why:'Component would crash on uncached first load',            impact:'Prevented a runtime error',    sev:'high'   },
+    { what:'Changed .map() to .slice(0,5).map()',          why:'Query can return more than 5 items on edge cases',        impact:'Ensured consistent 5-item cap', sev:'medium' },
+    { what:'Added loading skeleton instead of empty div',  why:'Layout shift would score CLS 0.4+ on slow connections',   impact:'Kept CLS under 0.1',           sev:'low'    },
   ];
-
+  const sc = { high:T.red, medium:T.amber, low:T.emerald };
+  const sl = { high:'Critical', medium:'Medium', low:'Minor' };
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
       <div>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          The evidence
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          Everything Artisan checked, in one place. Open any card for the full trace.
-        </p>
+        <Tag color={T.emerald} sx={{marginBottom:12}}>Before you saw it</Tag>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>3 things Artisan fixed itself</h1>
+        <p style={{color:T.t2,fontSize:16}}>These aren't bugs you'd catch in QA — they're the kind that quietly reach prod.</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {items.map((item) => {
-          const isOpen = open === item.id;
+      <div style={{display:'flex',flexDirection:'column',gap:12}}>
+        {fixes.map((f,i)=>{
+          const isOpen = exp.has(i);
+          const color = sc[f.sev];
           return (
-            <div
-              key={item.id}
-              onClick={() => setOpen(isOpen ? null : item.id)}
-              style={{
-                background: T.s1, border: `1px solid ${isOpen ? item.color + '40' : T.border}`,
-                borderRadius: 12, overflow: 'hidden',
-                cursor: 'pointer', transition: 'border-color 0.15s',
-              }}
-            >
-              <div style={{ padding: '14px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <div style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    background: item.color + '15', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: 14, color: item.color,
-                  }}>
-                    {item.icon}
+            <div key={i} onClick={()=>toggle(i)}
+              style={{background:T.s1,border:`1px solid ${isOpen?color+'40':T.border}`,borderRadius:14,overflow:'hidden',cursor:'pointer',transition:'border-color .15s'}}>
+              <div style={{padding:'18px 22px',display:'flex',gap:14,alignItems:'center'}}>
+                <div style={{width:8,height:8,borderRadius:'50%',background:color,flexShrink:0}}/>
+                <p style={{fontSize:15,fontWeight:500,color:T.t1,flex:1}}>{f.what}</p>
+                <Tag color={color}>{sl[f.sev]}</Tag>
+                <span style={{color:T.t2,fontSize:14}}>{isOpen?'▲':'▼'}</span>
+              </div>
+              {isOpen&&(
+                <div style={{borderTop:`1px solid ${T.border}`,padding:'16px 22px 18px 44px',background:color+'06',animation:'fadeUp .12s ease'}}>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+                    <div>
+                      <p style={{fontSize:11,color:T.t3,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>Why Artisan changed it</p>
+                      <p style={{fontSize:13,color:T.t2,lineHeight:1.55}}>{f.why}</p>
+                    </div>
+                    <div>
+                      <p style={{fontSize:11,color:T.t3,textTransform:'uppercase',letterSpacing:'0.06em',marginBottom:4}}>Result</p>
+                      <p style={{fontSize:13,color:T.emerald,lineHeight:1.55}}>{f.impact}</p>
+                    </div>
                   </div>
-                  <span style={{ fontSize: 15, fontWeight: 500, color: T.t1 }}>{item.label}</span>
                 </div>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: item.color, fontFamily: 'monospace' }}>
-                    ● {item.items.length} checks
-                  </span>
-                  <span style={{ color: T.t2, fontSize: 14 }}>{isOpen ? '▲' : '▼'}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{padding:'14px 20px',background:T.s1,borderRadius:10,border:`1px solid ${T.border}`}}>
+        <p style={{fontSize:14,color:T.t2}}>Artisan flags everything it changes. Nothing is hidden from you.</p>
+      </div>
+    </div>
+  );
+};
+
+/* 7 · Your Changes */
+const S7 = () => {
+  const [view,setView] = useState('flow');
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
+      <div>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>Something doesn't look right?</h1>
+        <p style={{color:T.t2,fontSize:16}}>Describe the change in plain English. Artisan handles the code.</p>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1.4fr',gap:24,alignItems:'start'}}>
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <div style={{display:'flex',gap:4,padding:4,background:T.s1,borderRadius:10,border:`1px solid ${T.border}`}}>
+            {[['flow','Flowchart'],['diff','Annotated diff'],['code','Raw code']].map(([v,lbl])=>(
+              <button key={v} onClick={()=>setView(v)} style={{
+                flex:1,padding:'8px 10px',borderRadius:7,border:'none',
+                background:view===v?T.s2:'transparent', color:view===v?T.t1:T.t3,
+                fontSize:13,fontWeight:500,cursor:'pointer',transition:'all .15s',
+              }}>{lbl}</button>
+            ))}
+          </div>
+
+          {view==='flow'&&(
+            <div style={{display:'flex',flexDirection:'column',gap:3,animation:'fadeUp .15s ease'}}>
+              {[['User opens home screen',T.primary],
+                ['Check EXPERT_PICKS_ENABLED flag',T.s2],
+                ['Fetch expert_picks WHERE category = X',T.s2],
+                ['Apply personalisation exclusions',T.s2],
+                ['Sort by curator_score DESC',T.s2],
+                ['Return top 5 (or all if fewer exist)',T.amber+'22'],
+                ['Render ExpertPicksShelf',T.emerald+'22'],
+              ].map(([l,bg],i,arr)=>(
+                <div key={i} style={{display:'flex',flexDirection:'column',alignItems:'stretch'}}>
+                  <div style={{padding:'10px 14px',background:bg,border:`1px solid ${T.border}`,borderRadius:8}}>
+                    <span style={{fontSize:13,color:T.t1}}>{l}</span>
+                  </div>
+                  {i<arr.length-1&&<div style={{width:1.5,height:8,background:T.borderH,margin:'0 auto'}}/>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {view==='diff'&&(
+            <Card style={{animation:'fadeUp .15s ease',padding:'18px 20px'}}>
+              <div style={{fontFamily:'monospace',fontSize:12,lineHeight:1.75}}>
+                <div style={{color:T.t3,marginBottom:8}}>expertPicksService.ts · Line 42</div>
+                <div style={{color:T.red,background:T.red+'12',padding:'3px 8px',borderRadius:4,marginBottom:2}}>- const picks = await db.query('SELECT * FROM expert_picks');</div>
+                <div style={{color:T.emerald,background:T.emerald+'12',padding:'3px 8px',borderRadius:4,marginBottom:1}}>+ const picks = await db.query(</div>
+                <div style={{color:T.emerald,background:T.emerald+'12',padding:'3px 24px',borderRadius:4,marginBottom:1}}>+   'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',</div>
+                <div style={{color:T.emerald,background:T.emerald+'12',padding:'3px 8px',borderRadius:4,marginBottom:8}}>+   [categoryId]</div>
+                <div style={{padding:'8px 10px',background:T.p10,borderRadius:6}}>
+                  <span style={{fontSize:11,color:T.primary}}>Added category filter and 5-item LIMIT. Prevents over-fetching.</span>
                 </div>
               </div>
-              {isOpen && (
-                <div style={{ borderTop: `1px solid ${T.border}`, padding: '12px 16px 14px' }}>
-                  {item.items.map((it, j) => (
-                    <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'center', paddingBottom: j < item.items.length - 1 ? 8 : 0 }}>
-                      <span style={{ color: T.emerald, fontSize: 11, fontFamily: 'monospace' }}>✓</span>
-                      <span style={{ fontSize: 13, color: T.t2 }}>{it}</span>
+            </Card>
+          )}
+
+          {view==='code'&&(
+            <Card style={{animation:'fadeUp .15s ease',padding:'18px 20px'}}>
+              <div style={{fontFamily:'monospace',fontSize:12,lineHeight:1.75,color:T.t2}}>
+                <span style={{color:T.violet}}>export async function </span>
+                <span style={{color:T.primary}}>getExpertPicks</span>
+                {'(categoryId: string) {\n  '}
+                <span style={{color:T.violet}}>const </span>
+                {"picks = await db.query(\n    'SELECT * FROM expert_picks WHERE category = $1 LIMIT 5',\n    [categoryId]\n  );\n  "}
+                <span style={{color:T.violet}}>return </span>
+                {'applyPersonalisationFilter(picks);\n}'}
+              </div>
+            </Card>
+          )}
+        </div>
+
+        <div style={{display:'flex',flexDirection:'column',gap:16}}>
+          <Card>
+            <p style={{fontSize:14,fontWeight:600,color:T.t1,marginBottom:4}}>Tell Artisan what to change</p>
+            <p style={{fontSize:13,color:T.t3,marginBottom:16}}>Write in plain English — no code needed.</p>
+            <textarea placeholder="e.g. The shelf should only show items with ratings above 4.2"
+              style={{width:'100%',height:100,padding:'12px 14px',borderRadius:10,background:T.s2,border:`1px solid ${T.border}`,color:T.t1,fontSize:14,fontFamily:I,outline:'none',resize:'none',lineHeight:1.6}}
+            />
+            <div style={{marginTop:12}}><Btn sx={{width:'100%'}}>Apply change</Btn></div>
+          </Card>
+          <div style={{padding:'14px 16px',background:T.s1,border:`1px solid ${T.border}`,borderRadius:10}}>
+            <SLabel>Recent changes</SLabel>
+            {[['Added null check for empty array','2 min ago'],['Switched to .slice(0,5).map()','4 min ago']].map(([l,t],i)=>(
+              <div key={i} style={{display:'flex',justifyContent:'space-between',paddingBottom:i<1?8:0}}>
+                <span style={{fontSize:13,color:T.t2}}>{l}</span>
+                <span style={{fontSize:11,color:T.t3}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* 8 · Evidence */
+const S8 = () => {
+  const [open,setOpen] = useState(null);
+  const cards = [
+    { id:0, icon:'✓', label:'Does it look right?',    color:T.emerald, items:['Figma mock #88 · pixel match 94%','Dark mode · contrast ratio 5.2:1','Loading skeleton matches brand spec'] },
+    { id:1, icon:'⚙', label:'Does it work?',           color:T.primary, items:['34 unit tests · 34 passing','Edge: 0 picks → empty state shown','Edge: 1 pick → layout holds','Personalisation: 12/12 test cases pass'] },
+    { id:2, icon:'◈', label:'Did it break anything?',  color:T.amber,   items:['0 regressions in CI (847 tests)','Trending Shelf unaffected','Home screen TTI: 1.2s unchanged'] },
+    { id:3, icon:'⬡', label:'Is the code good?',       color:T.violet,  items:['No new lint errors','Test coverage: 94% (+2%)','Cyclomatic complexity: 4 (unchanged)'] },
+  ];
+  return (
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
+      <div>
+        <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>The evidence</h1>
+        <p style={{color:T.t2,fontSize:16}}>Everything Artisan checked before handing this to you. Click any category for the full trace.</p>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:16}}>
+        {cards.map((c)=>{
+          const isOpen = open===c.id;
+          return (
+            <div key={c.id} onClick={()=>setOpen(isOpen?null:c.id)}
+              style={{background:T.s1,border:`1px solid ${isOpen?c.color+'45':T.border}`,borderRadius:14,overflow:'hidden',cursor:'pointer',transition:'border-color .15s'}}>
+              <div style={{padding:'20px 22px',display:'flex',gap:14,alignItems:'center'}}>
+                <div style={{width:38,height:38,borderRadius:9,background:c.color+'18',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,color:c.color,flexShrink:0}}>{c.icon}</div>
+                <div style={{flex:1}}>
+                  <p style={{fontSize:15,fontWeight:500,color:T.t1}}>{c.label}</p>
+                  <p style={{fontSize:12,color:c.color,marginTop:2}}>● {c.items.length} checks passed</p>
+                </div>
+                <span style={{color:T.t2,fontSize:14}}>{isOpen?'▲':'▼'}</span>
+              </div>
+              {isOpen&&(
+                <div style={{borderTop:`1px solid ${T.border}`,padding:'14px 22px 18px',animation:'fadeUp .12s ease'}}>
+                  {c.items.map((it,j)=>(
+                    <div key={j} style={{display:'flex',gap:10,alignItems:'center',paddingBottom:j<c.items.length-1?8:0}}>
+                      <span style={{color:T.emerald,fontSize:11,fontFamily:'monospace'}}>✓</span>
+                      <span style={{fontSize:13,color:T.t2}}>{it}</span>
                     </div>
                   ))}
                 </div>
@@ -1122,180 +715,105 @@ const EvidenceScreen = () => {
         })}
       </div>
 
-      <Card style={{ padding: '14px 16px', background: T.emerald10, borderColor: T.emerald + '30' }}>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ color: T.emerald, fontSize: 18 }}>✓</span>
-          <p style={{ fontSize: 14, fontWeight: 500, color: T.t1 }}>
-            All 4 fear categories resolved
-          </p>
+      <Card style={{padding:'16px 22px',background:T.e10,borderColor:T.emerald+'30'}}>
+        <div style={{display:'flex',gap:12,alignItems:'center'}}>
+          <span style={{color:T.emerald,fontSize:18}}>✓</span>
+          <p style={{fontSize:15,fontWeight:500,color:T.t1,flex:1}}>All 4 fear categories resolved</p>
+          <div style={{display:'flex',gap:20}}>
+            <Dot type="verified" label="34 tests"/><Dot type="verified" label="0 regressions"/><Dot type="inferred" label="1 safe default"/>
+          </div>
         </div>
       </Card>
     </div>
   );
 };
 
-/* ── Screen 9: Safety Net ── */
-const SafetyScreen = () => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+/* 9 · Safety Net */
+const S9 = () => (
+  <div style={{display:'flex',flexDirection:'column',gap:32}}>
     <div>
-      <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-        What if something goes wrong?
-      </h1>
-      <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-        Three layers of protection are in place before this ships.
-      </p>
+      <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>What if something goes wrong?</h1>
+      <p style={{color:T.t2,fontSize:16}}>Three layers of protection are active. Here's exactly what each one does.</p>
     </div>
 
-    {[
-      {
-        title: 'Feature flag',
-        color: T.emerald,
-        icon: '⚑',
-        lines: [
-          'EXPERT_PICKS_ENABLED defaults to false',
-          'Rollout: 5% → 20% → 100% over 3 days',
-          'Artisan monitors error rate at each threshold',
-        ],
-      },
-      {
-        title: 'Automatic rollback trigger',
-        color: T.amber,
-        icon: '↩',
-        lines: [
-          'Error rate > 0.5% for 5 minutes → auto-disable flag',
-          'On-call engineer notified via PagerDuty',
-          'Artisan writes incident report automatically',
-        ],
-      },
-      {
-        title: 'What Artisan can\'t undo',
-        color: T.amber,
-        icon: '△',
-        lines: [
-          'Cache writes persist for up to 24h after rollback',
-          'Analytics events already sent can\'t be recalled',
-          'PR merge is permanent — rollback via revert PR',
-        ],
-      },
-    ].map((s, i) => (
-      <Card key={i} style={{ borderColor: s.color + '30' }}>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <div style={{
-            width: 34, height: 34, borderRadius: 8, background: s.color + '15',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: s.color, fontSize: 15, flexShrink: 0,
-          }}>
-            {s.icon}
-          </div>
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 600, color: T.t1, marginBottom: 8 }}>{s.title}</p>
-            {s.lines.map((l, j) => (
-              <div key={j} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 5 }}>
-                <span style={{ color: s.color, fontSize: 11, marginTop: 3, flexShrink: 0 }}>—</span>
-                <span style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>{l}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Card>
-    ))}
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:20}}>
+      {[
+        { title:'Feature flag',          color:T.emerald, icon:'⚑', lines:['EXPERT_PICKS_ENABLED defaults to false','Rollout: 5% → 20% → 100% over 3 days','Artisan monitors error rate at each threshold'] },
+        { title:'Auto rollback trigger', color:T.amber,   icon:'↩', lines:['Error rate > 0.5% for 5 min → flag disabled','On-call engineer notified via PagerDuty','Artisan writes incident report automatically'] },
+        { title:"What can't be undone",  color:T.amber,   icon:'△', lines:['Cache writes persist for up to 24h after rollback','Analytics events already sent can\'t be recalled','PR merge is permanent — rollback via revert PR'] },
+      ].map((s,i)=>(
+        <Card key={i} style={{borderColor:s.color+'30'}}>
+          <div style={{width:38,height:38,borderRadius:9,background:s.color+'18',display:'flex',alignItems:'center',justifyContent:'center',color:s.color,fontSize:17,marginBottom:14}}>{s.icon}</div>
+          <p style={{fontSize:15,fontWeight:600,color:T.t1,marginBottom:12}}>{s.title}</p>
+          {s.lines.map((l,j)=>(
+            <div key={j} style={{display:'flex',gap:8,alignItems:'flex-start',marginBottom:j<s.lines.length-1?8:0}}>
+              <span style={{color:s.color,fontSize:11,marginTop:3,flexShrink:0}}>—</span>
+              <span style={{fontSize:13,color:T.t2,lineHeight:1.5}}>{l}</span>
+            </div>
+          ))}
+        </Card>
+      ))}
+    </div>
 
-    <div style={{ padding: '12px 16px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
-      <p style={{ fontSize: 13, color: T.t2, lineHeight: 1.5 }}>
-        <strong style={{ color: T.t1 }}>Artisan's commitment:</strong> It will never merge without your explicit sign-off. The flag is yours to control.
+    <div style={{padding:'16px 22px',background:T.s1,borderRadius:12,border:`1px solid ${T.border}`}}>
+      <p style={{fontSize:14,color:T.t2,lineHeight:1.55}}>
+        <strong style={{color:T.t1}}>Artisan's commitment:</strong> It will never merge without your explicit sign-off. The feature flag is yours to control at all times.
       </p>
     </div>
   </div>
 );
 
-/* ── Screen 10: Ship Moment ── */
-const ShipScreen = () => {
-  const [shipped, setShipped] = useState(false);
+/* 10 · Ship Moment */
+const S10 = () => {
+  const [shipped,setShipped] = useState(false);
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, textAlign: 'center', paddingTop: 8 }}>
-      {!shipped ? (
+    <div style={{display:'flex',flexDirection:'column',gap:32}}>
+      {!shipped?(
         <>
           <div>
-            {/* Radial glow — visual ceremony for the trust milestone */}
-            <div style={{
-              position: 'relative', width: 88, height: 88, margin: '0 auto 16px',
-            }}>
-              <div style={{
-                position: 'absolute', inset: -16,
-                background: `radial-gradient(circle, ${T.emerald}20 0%, transparent 70%)`,
-                borderRadius: '50%',
-              }} />
-              <div style={{
-                width: 88, height: 88, borderRadius: '50%',
-                background: T.emerald10, border: `2px solid ${T.emerald}50`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 34, position: 'relative',
-              }}>
-                🚀
-              </div>
-            </div>
-            <h1 style={{ fontFamily: font.grotesk, fontSize: 30, fontWeight: 700, color: T.t1, lineHeight: 1.2, marginBottom: 6 }}>
-              Ready to ship
-            </h1>
-            <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-              Expert Picks is built, tested, and waiting on your word.
-            </p>
+            <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>Ready to ship</h1>
+            <p style={{color:T.t2,fontSize:16}}>Expert Picks is built, tested, and waiting on your word. Nothing merges until you say so.</p>
           </div>
-
-          {/* Final checklist */}
-          <Card style={{ textAlign: 'left' }}>
-            {[
-              ['34 tests passing', T.emerald],
-              ['0 regressions', T.emerald],
-              ['Feature flag ready', T.emerald],
-              ['Rollback plan in place', T.emerald],
-              ['Spec matched (1 safe default)', T.amber],
-            ].map(([l, c], i) => (
-              <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', paddingBottom: i < 4 ? 10 : 0 }}>
-                <span style={{ fontSize: 12, color: c, fontFamily: 'monospace' }}>{c === T.emerald ? '●' : '◐'}</span>
-                <span style={{ fontSize: 14, color: T.t1 }}>{l}</span>
-              </div>
-            ))}
-          </Card>
-
-          <div>
-            <Btn variant="success" size="lg" onClick={() => setShipped(true)} style={{ width: '100%', marginBottom: 10 }}>
-              Ship to 5% of users
-            </Btn>
-            <p style={{ fontSize: 12, color: T.t3 }}>
-              Artisan will monitor the rollout and alert you if error rate exceeds 0.5%
-            </p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24,alignItems:'start'}}>
+            <Card>
+              <SLabel>Pre-ship checklist</SLabel>
+              {[['34 tests passing',T.emerald,'●'],['0 regressions',T.emerald,'●'],['Feature flag ready',T.emerald,'●'],['Rollback plan in place',T.emerald,'●'],['Spec matched (1 safe default)',T.amber,'◐']].map(([l,c,d],i)=>(
+                <div key={i} style={{display:'flex',gap:12,alignItems:'center',paddingBottom:i<4?12:0}}>
+                  <span style={{fontSize:10,color:c,fontFamily:'monospace'}}>{d}</span>
+                  <span style={{fontSize:14,color:T.t1}}>{l}</span>
+                </div>
+              ))}
+            </Card>
+            <div style={{padding:32,borderRadius:16,textAlign:'center',background:`radial-gradient(ellipse at 50% 0%, ${T.emerald}18 0%, transparent 65%), ${T.s1}`,border:`1px solid ${T.emerald}35`}}>
+              <div style={{fontSize:52,marginBottom:20}}>🚀</div>
+              <Btn variant="success" size="lg" onClick={()=>setShipped(true)} sx={{width:'100%',marginBottom:10}}>
+                Ship to 5% of users
+              </Btn>
+              <p style={{fontSize:12,color:T.t3}}>Artisan monitors rollout and alerts if error rate exceeds 0.5%</p>
+            </div>
           </div>
         </>
-      ) : (
-        <div style={{ animation: 'fadeUp 0.3s ease both', paddingTop: 16 }}>
-          <div style={{ position: 'relative', width: 88, height: 88, margin: '0 auto 20px' }}>
-            <div style={{
-              position: 'absolute', inset: -20,
-              background: `radial-gradient(circle, ${T.emerald}25 0%, transparent 70%)`,
-              borderRadius: '50%',
-            }} />
-            <div style={{
-              width: 88, height: 88, borderRadius: '50%',
-              background: T.emerald10, border: `2px solid ${T.emerald}`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 32, position: 'relative',
-            }}>
-              ✓
+      ):(
+        <div style={{animation:'fadeUp .3s ease'}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:32,alignItems:'start'}}>
+            <div>
+              <div style={{fontSize:60,marginBottom:20}}>✓</div>
+              <h1 style={{fontFamily:G,fontSize:52,fontWeight:700,color:T.emerald,lineHeight:1,marginBottom:12,letterSpacing:'-0.03em'}}>Shipped.</h1>
+              <p style={{color:T.t2,fontSize:17,lineHeight:1.6}}>Expert Picks is live for 5% of users. Artisan is watching for errors, slowdowns, and anomalies.</p>
             </div>
-          </div>
-          <h1 style={{ fontFamily: font.grotesk, fontSize: 32, fontWeight: 700, color: T.emerald, marginBottom: 8, letterSpacing: '-0.02em' }}>
-            Shipped.
-          </h1>
-          <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6, marginBottom: 20 }}>
-            Expert Picks is live for 5% of users. Artisan is watching.
-          </p>
-          <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
-            <div style={{ padding: '12px 14px', background: T.emerald10, borderRadius: 10, border: `1px solid ${T.emerald}30` }}>
-              <p style={{ fontSize: 13, color: T.emerald }}>PR #284 merged · main ← feature/expert-picks</p>
-            </div>
-            <div style={{ padding: '12px 14px', background: T.s1, borderRadius: 10, border: `1px solid ${T.border}` }}>
-              <p style={{ fontSize: 13, color: T.t2 }}>24h rollout report will land in your inbox</p>
+            <div style={{display:'flex',flexDirection:'column',gap:12,marginTop:8}}>
+              <div style={{padding:'16px 20px',background:T.e10,borderRadius:12,border:`1px solid ${T.emerald}30`}}>
+                <p style={{fontSize:13,fontWeight:500,color:T.emerald}}>PR #284 merged</p>
+                <p style={{fontSize:12,color:T.t3,marginTop:2}}>main ← feature/expert-picks · 2 min ago</p>
+              </div>
+              <div style={{padding:'16px 20px',background:T.s1,borderRadius:12,border:`1px solid ${T.border}`}}>
+                <p style={{fontSize:13,color:T.t2}}>24h rollout report will land in your inbox</p>
+              </div>
+              <div style={{padding:'16px 20px',background:T.s1,borderRadius:12,border:`1px solid ${T.border}`}}>
+                <p style={{fontSize:13,color:T.t2,marginBottom:8}}>Error rate monitoring · active · 5% of users</p>
+                <Bar value={5} color={T.emerald}/>
+                <p style={{fontSize:11,color:T.t3,marginTop:6}}>0 errors so far</p>
+              </div>
             </div>
           </div>
         </div>
@@ -1304,251 +822,183 @@ const ShipScreen = () => {
   );
 };
 
-/* ── Screen 11: 24h Report ── */
-const ReportScreen = () => {
-  const metrics = [
-    { label: 'Error rate', value: '0.02%', target: '< 0.5%', status: 'good' },
-    { label: 'Click-through', value: '6.4%', target: '> 4% target', status: 'good' },
-    { label: 'Avg picks loaded', value: '4.8', target: '≤ 5 expected', status: 'good' },
-    { label: 'Users affected', value: '0', target: '0', status: 'neutral' },
-  ];
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div>
-        <Tag color={T.emerald} bg={T.emerald10} style={{ marginBottom: 8 }}>24h post-ship</Tag>
-        <h1 style={{ fontFamily: font.grotesk, fontSize: 26, fontWeight: 700, color: T.t1, lineHeight: 1.25, marginBottom: 6 }}>
-          Expert Picks is healthy
-        </h1>
-        <p style={{ color: T.t2, fontSize: 15, lineHeight: 1.6 }}>
-          5% rollout complete. No incidents. Artisan recommends expanding to 20%.
-        </p>
-      </div>
-
-      {/* Von Restorff: Error rate is the most critical metric — make it dominant */}
-      <div style={{
-        padding: '18px 20px', borderRadius: 14,
-        background: `linear-gradient(135deg, ${T.emerald}15 0%, ${T.emerald}06 100%)`,
-        border: `1px solid ${T.emerald}30`,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      }}>
-        <div>
-          <p style={{ fontSize: 12, color: T.t3, marginBottom: 4, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Error rate</p>
-          <p style={{ fontFamily: font.grotesk, fontSize: 40, fontWeight: 700, color: T.emerald, lineHeight: 1 }}>0.02%</p>
-          <p style={{ fontSize: 12, color: T.t3, marginTop: 4 }}>Target: &lt; 0.5%</p>
-        </div>
-        <div style={{ padding: '10px 16px', background: T.emerald + '15', borderRadius: 10, textAlign: 'center' }}>
-          <p style={{ fontSize: 12, color: T.t3, marginBottom: 2 }}>Incidents</p>
-          <p style={{ fontFamily: font.grotesk, fontSize: 28, fontWeight: 700, color: T.t1, lineHeight: 1 }}>0</p>
-        </div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-        {metrics.slice(1).map((m, i) => (
-          <div key={i} style={{
-            background: T.s1, border: `1px solid ${T.border}`,
-            borderRadius: 12, padding: '12px 14px',
-          }}>
-            <p style={{ fontSize: 11, color: T.t3, marginBottom: 4 }}>{m.label}</p>
-            <p style={{
-              fontFamily: font.grotesk, fontSize: 20, fontWeight: 700,
-              color: m.status === 'good' ? T.emerald : m.status === 'bad' ? T.red : T.t1,
-              marginBottom: 2,
-            }}>{m.value}</p>
-            <p style={{ fontSize: 11, color: T.t3 }}>{m.target}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Rollout plan */}
-      <Card>
-        <p style={{ fontSize: 12, fontWeight: 600, color: T.t3, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 12 }}>
-          Rollout plan
-        </p>
-        {[
-          { label: '5% — complete', done: true },
-          { label: '20% — Artisan recommends now', active: true },
-          { label: '100% — after 24h at 20%', done: false },
-        ].map((r, i) => (
-          <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: i < 2 ? 10 : 0 }}>
-            <span style={{ fontFamily: 'monospace', fontSize: 11, color: r.done ? T.emerald : r.active ? T.primary : T.t3 }}>
-              {r.done ? '●' : r.active ? '◎' : '○'}
-            </span>
-            <span style={{ fontSize: 14, color: r.active ? T.t1 : T.t2 }}>{r.label}</span>
-          </div>
-        ))}
-      </Card>
-
-      <div style={{ display: 'flex', gap: 10 }}>
-        <Btn variant="success" style={{ flex: 1 }}>Expand to 20%</Btn>
-        <Btn variant="ghost">View full report</Btn>
-      </div>
+/* 11 · 24h Report */
+const S11 = () => (
+  <div style={{display:'flex',flexDirection:'column',gap:32}}>
+    <div>
+      <Tag color={T.emerald} sx={{marginBottom:12}}>24h post-ship</Tag>
+      <h1 style={{fontFamily:G,fontSize:36,fontWeight:700,color:T.t1,lineHeight:1.2,marginBottom:8}}>Expert Picks is healthy</h1>
+      <p style={{color:T.t2,fontSize:16}}>5% rollout complete. No incidents. Artisan recommends expanding to 20%.</p>
     </div>
-  );
-};
 
-/* ─────────────────────────────── SCREEN CONFIG ────────────────────────── */
+    <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:16}}>
+      <Stat hero label="Error rate" value="0.02%" sub="Target: < 0.5%  ·  0 incidents" color={T.emerald}/>
+      <Stat label="Click-through" value="6.4%" sub="> 4% target" color={T.emerald}/>
+      <Stat label="Avg picks shown" value="4.8" sub="≤ 5 expected" color={T.t1}/>
+      <Stat label="Users affected" value="0" sub="No errors" color={T.t1}/>
+    </div>
+
+    <Card>
+      <SLabel>Rollout plan</SLabel>
+      {[{ label:'5% — complete', done:true, active:false },
+        { label:'20% — Artisan recommends now', done:false, active:true },
+        { label:'100% — after 24h stable at 20%', done:false, active:false },
+      ].map((r,i,arr)=>(
+        <div key={i} style={{display:'flex',gap:16,alignItems:'center',padding:'14px 0',borderBottom:i<arr.length-1?`1px solid ${T.border}`:'none'}}>
+          <span style={{fontFamily:'monospace',fontSize:12,color:r.done?T.emerald:r.active?T.primary:T.t3}}>
+            {r.done?'●':r.active?'◎':'○'}
+          </span>
+          <span style={{fontSize:14,color:r.active?T.t1:T.t2,fontWeight:r.active?500:400,flex:1}}>{r.label}</span>
+          {r.active&&<Tag color={T.primary}>Ready</Tag>}
+        </div>
+      ))}
+    </Card>
+
+    <div style={{display:'flex',gap:12}}>
+      <Btn variant="success" size="lg">Expand to 20%</Btn>
+      <Btn variant="ghost" size="lg">View full report</Btn>
+    </div>
+  </div>
+);
+
+/* ═══════ SCREEN REGISTRY ═══════ */
 const SCREENS = [
-  { name: 'Feasibility',       Component: FeasibilityScreen },
-  { name: 'Requirements',      Component: RequirementsScreen },
-  { name: 'Data sources',      Component: DataDiscoveryScreen },
-  { name: 'The plan',          Component: SpecScreen },
-  { name: 'Handoff',           Component: HandoffScreen },
-  { name: 'Live build',        Component: LiveBuildScreen },
-  { name: 'Self-corrections',  Component: SelfCorrectionScreen },
-  { name: 'Your changes',      Component: CorrectionLoopScreen },
-  { name: 'Evidence',          Component: EvidenceScreen },
-  { name: 'Safety net',        Component: SafetyScreen },
-  { name: 'Ship moment',       Component: ShipScreen },
-  { name: '24h report',        Component: ReportScreen },
+  { name:'Feasibility',      Component:S0  },
+  { name:'Requirements',     Component:S1  },
+  { name:'Data sources',     Component:S2  },
+  { name:'The plan',         Component:S3  },
+  { name:'Handoff',          Component:S4  },
+  { name:'Live build',       Component:S5  },
+  { name:'Self-corrections', Component:S6  },
+  { name:'Your changes',     Component:S7  },
+  { name:'Evidence',         Component:S8  },
+  { name:'Safety net',       Component:S9  },
+  { name:'Ship moment',      Component:S10 },
+  { name:'24h report',       Component:S11 },
 ];
 
-/* ─────────────────────────────── APP SHELL ──────────────────────────────  */
+/* ═══════ APP SHELL — Desktop: sidebar + scrollable content ═══════ */
 const App = () => {
-  const [screen, setScreen] = useState(0);
-  const [animKey, setAnimKey] = useState(0);
+  const [screen,setScreen] = useState(0);
+  const [animKey,setAnimKey] = useState(0);
   const total = SCREENS.length;
 
-  const go = useCallback((n) => {
-    if (n < 0 || n >= total) return;
+  const go = useCallback((n)=>{
+    if(n<0||n>=total) return;
     setScreen(n);
-    setAnimKey(k => k + 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [total]);
+    setAnimKey(k=>k+1);
+  },[total]);
 
-  const pct = ((screen + 1) / total) * 100;
+  useEffect(()=>{
+    const h = (e)=>{ if(e.key==='ArrowRight') go(screen+1); if(e.key==='ArrowLeft') go(screen-1); };
+    window.addEventListener('keydown',h);
+    return ()=>window.removeEventListener('keydown',h);
+  },[screen,go]);
+
   const { Component } = SCREENS[screen];
-
-  /* Keyboard navigation */
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === 'ArrowRight') go(screen + 1);
-      if (e.key === 'ArrowLeft')  go(screen - 1);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [screen, go]);
+  const pct = ((screen+1)/total)*100;
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: T.bg, maxWidth: 480, margin: '0 auto', position: 'relative' }}>
-      {/* Skip link for keyboard/screen reader users */}
-      <a
-        href="#main-content"
-        style={{
-          position: 'absolute', top: 8, left: 8, zIndex: 100,
-          padding: '8px 12px', borderRadius: 6, fontSize: 13,
-          background: T.primary, color: T.t1, fontFamily: font.inter,
-          textDecoration: 'none', fontWeight: 500,
-          transform: 'translateY(-60px)', transition: 'transform 0.1s',
-        }}
-        onFocus={e => { e.target.style.transform = 'translateY(0)'; }}
-        onBlur={e => { e.target.style.transform = 'translateY(-60px)'; }}
-      >
-        Skip to content
-      </a>
-      {/* Progress bar — top of screen */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0, height: 3, background: T.s2, zIndex: 50 }}>
-        <div style={{
-          height: '100%', background: T.primary,
-          width: `${pct}%`, transition: 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} />
-      </div>
+    <div style={{display:'flex',height:'100vh',overflow:'hidden',background:T.bg}}>
 
-      {/* Top bar */}
-      <header style={{
-        position: 'fixed', top: 3, left: 0, right: 0, zIndex: 40,
-        height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 20px',
-        background: T.bg + 'f0',
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${T.border}`,
-        maxWidth: 480, margin: '0 auto',
+      {/* ── Sidebar ── */}
+      <aside style={{
+        width:232, flexShrink:0,
+        background:T.s1, borderRight:`1px solid ${T.border}`,
+        display:'flex', flexDirection:'column', overflow:'hidden',
       }}>
-        <span style={{ fontSize: 15, fontWeight: 700, fontFamily: font.grotesk, color: T.t1, letterSpacing: '-0.02em' }}>
-          Artisan
-        </span>
-        <span style={{
-          fontSize: 13, fontWeight: 500, color: T.t2,
-          position: 'absolute', left: 0, right: 0, textAlign: 'center',
-          pointerEvents: 'none', whiteSpace: 'nowrap',
+        {/* Brand */}
+        <div style={{padding:'24px 24px 16px',borderBottom:`1px solid ${T.border}`}}>
+          <p style={{fontFamily:G,fontSize:15,fontWeight:700,color:T.t1,letterSpacing:'-0.02em'}}>Artisan</p>
+          <p style={{fontSize:11,color:T.t3,marginTop:2}}>PM Shipping Flow</p>
+        </div>
+
+        {/* Progress */}
+        <div style={{padding:'14px 24px',borderBottom:`1px solid ${T.border}`}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+            <span style={{fontSize:11,color:T.t3}}>Progress</span>
+            <span style={{fontSize:11,color:T.t2,fontFamily:'monospace'}}>{screen+1} / {total}</span>
+          </div>
+          <Bar value={pct}/>
+        </div>
+
+        {/* Nav */}
+        <nav style={{flex:1,overflowY:'auto',padding:'10px 10px'}}>
+          {SCREENS.map((s,i)=>{
+            const active = screen===i;
+            const done = i<screen;
+            return (
+              <button key={i} onClick={()=>go(i)} style={{
+                width:'100%', textAlign:'left', display:'flex', alignItems:'center', gap:10,
+                padding:'8px 12px', borderRadius:8, border:'none',
+                background:active?T.p10:'transparent',
+                cursor:'pointer', transition:'background .12s', marginBottom:1,
+              }}>
+                <span style={{
+                  width:20,height:20,borderRadius:'50%',flexShrink:0,
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:9,fontFamily:'monospace',
+                  background:active?T.primary:done?T.e10:T.s2,
+                  border:`1.5px solid ${active?T.primary:done?T.emerald:T.border}`,
+                  color:active?T.t1:done?T.emerald:T.t3,
+                }}>
+                  {done?'✓':i+1}
+                </span>
+                <span style={{fontSize:13,fontWeight:active?500:400,color:active?T.t1:done?T.t2:T.t3}}>
+                  {s.name}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Keyboard hint */}
+        <div style={{padding:'12px 24px',borderTop:`1px solid ${T.border}`}}>
+          <p style={{fontSize:11,color:T.t3}}>
+            <kbd style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:4,padding:'1px 5px',fontFamily:'monospace',fontSize:10}}>←</kbd>
+            {' '}<kbd style={{background:T.s2,border:`1px solid ${T.border}`,borderRadius:4,padding:'1px 5px',fontFamily:'monospace',fontSize:10}}>→</kbd>
+            {' '}to navigate
+          </p>
+        </div>
+      </aside>
+
+      {/* ── Content area ── */}
+      <div style={{flex:1,display:'flex',flexDirection:'column',overflow:'hidden'}}>
+
+        {/* Top bar */}
+        <header style={{
+          height:54,flexShrink:0,
+          display:'flex',alignItems:'center',justifyContent:'space-between',
+          padding:'0 48px',
+          borderBottom:`1px solid ${T.border}`,
+          background:T.bg,
         }}>
-          {SCREENS[screen].name}
-        </span>
-        <span style={{ fontSize: 12, color: T.t3, fontFamily: 'monospace' }}>
-          {screen + 1} / {total}
-        </span>
-      </header>
+          <p style={{fontSize:14,fontWeight:500,color:T.t1}}>{SCREENS[screen].name}</p>
+          <div style={{display:'flex',gap:8}}>
+            <Btn variant="ghost" size="sm" onClick={()=>go(screen-1)} disabled={screen===0}>← Back</Btn>
+            <Btn size="sm" onClick={()=>go(screen+1)} disabled={screen===total-1}>Next →</Btn>
+          </div>
+        </header>
 
-      {/* Scrollable content */}
-      <main id="main-content" role="main" style={{
-        flex: 1,
-        marginTop: 59,
-        marginBottom: 72,
-        overflowY: 'auto',
-        padding: '24px 20px 8px',
-      }}>
-        <div key={animKey} className="screen-enter">
-          <Component />
-        </div>
-      </main>
-
-      {/* Bottom nav */}
-      <footer role="navigation" aria-label="Screen navigation" style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 40,
-        height: 68,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 16px',
-        background: T.bg + 'f0',
-        backdropFilter: 'blur(12px)',
-        borderTop: `1px solid ${T.border}`,
-        maxWidth: 480, margin: '0 auto',
-        gap: 12,
-      }}>
-        <Btn
-          variant="ghost"
-          onClick={() => go(screen - 1)}
-          disabled={screen === 0}
-          style={{ minWidth: 80 }}
-        >
-          ← Back
-        </Btn>
-
-        {/* Dot nav — Fitts's Law: 44px hit area wrapping the visual 6px dot */}
-        <div style={{ display: 'flex', gap: 2, alignItems: 'center', flex: 1, justifyContent: 'center' }}>
-          {Array.from({ length: total }).map((_, i) => (
-            <button
-              key={i}
-              onClick={() => go(i)}
-              aria-label={`${SCREENS[i].name} (${i + 1} of ${total})`}
-              style={{
-                width: 24, height: 44, // full 44px tap target; visual indicator below
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
-              }}
-            >
-              <span style={{
-                display: 'block',
-                width: i === screen ? 20 : 6, height: 6,
-                borderRadius: 3,
-                background: i === screen ? T.primary : i < screen ? T.primary + '55' : T.s3,
-                transition: 'width 0.2s ease, background 0.2s ease',
-              }} />
-            </button>
-          ))}
+        {/* Thin progress line */}
+        <div style={{height:2,background:T.s2,flexShrink:0}}>
+          <div style={{height:'100%',width:`${pct}%`,background:T.primary,transition:'width .4s ease'}}/>
         </div>
 
-        <Btn
-          onClick={() => go(screen + 1)}
-          disabled={screen === total - 1}
-          style={{ minWidth: 80 }}
-        >
-          Next →
-        </Btn>
-      </footer>
+        {/* Scrollable content */}
+        <main role="main" style={{flex:1,overflowY:'auto',padding:'52px 64px 72px'}}>
+          <div style={{maxWidth:900}}>
+            <div key={animKey} className="screen-enter">
+              <Component/>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 };
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
 </script>
 </body>
 </html>
